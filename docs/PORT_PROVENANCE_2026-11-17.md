@@ -69,13 +69,17 @@ The Actions port therefore adds independent `AD_CTA_*` and `AD_LINK_*` gates but
 does not invent values. Controlled uploads remain blocked until the official JA
 and EN values are configured.
 
-## Validation gate status at initial port
+## Validation gate status
 
 - source identified: PASS
 - JA local planner parity: PASS
 - EN local planner parity: PASS
-- Ubuntu Actions JA dry-run: PENDING
-- Ubuntu Actions EN dry-run: PENDING
+- Ubuntu Actions JA dry-run: PASS (`44036371299`, original port HEAD)
+- Ubuntu Actions EN dry-run: PASS (`44036380585`, original port HEAD)
+- JA generated media: H.264, 1080x1920, 12.0s, audio present, 745650 bytes
+- EN generated media: H.264, 1080x1920, 12.0s, audio present, 679217 bytes
+- temporary media cleanup: PASS for both lanes
+- uploads during dry-run: zero for both lanes
 - JA OAuth check: PENDING secrets
 - EN OAuth check: PENDING secrets
 - controlled uploads: PENDING prior gates
