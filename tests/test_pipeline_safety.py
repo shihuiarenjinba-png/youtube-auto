@@ -51,6 +51,13 @@ class PipelineSafetyTests(unittest.TestCase):
             ["詳しくはこちら", "https://example.com/product"],
         )
 
+    def test_private_mode_ignores_marketing_variables_in_pipeline(self):
+        pipeline = (ROOT / "scripts" / "run_ad_pipeline.py").read_text(encoding="utf-8")
+        self.assertIn('if args.mode == "private":', pipeline)
+        self.assertIn("広告CTA・商品URLは意図的に未使用です", pipeline)
+        self.assertIn("Marketing CTA/product URL intentionally omitted.", pipeline)
+        self.assertIn('marketing_lines(require=args.mode == "unlisted")', pipeline)
+
     def test_language_mismatch_fails_closed(self):
         with self.assertRaises(RuntimeError):
             lane_card_check([{"lang": "en"}], "ja")
