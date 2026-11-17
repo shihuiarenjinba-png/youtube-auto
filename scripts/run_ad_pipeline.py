@@ -146,7 +146,14 @@ def main() -> int:
         }, ensure_ascii=False))
         return 0
 
-    cta_lines = marketing_lines(require=upload_mode)
+    if args.mode == "private":
+        cta_lines = [
+            "【検証用非公開アップロード】広告CTA・商品URLは意図的に未使用です。"
+            if args.language == "ja"
+            else "[PRIVATE VALIDATION UPLOAD] Marketing CTA/product URL intentionally omitted."
+        ]
+    else:
+        cta_lines = marketing_lines(require=args.mode == "unlisted")
     markers = [f"[youtube-auto:{args.language}:{day.isoformat()}:{slot:02d}]"
                for slot in range(1, args.max_videos + 1)]
     existing = client.existing_markers(markers) if client else set()
