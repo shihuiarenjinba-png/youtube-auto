@@ -1,0 +1,47 @@
+name: YouTube Ad Pipeline - Scaffold
+
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        description: "Advertisement language"
+        required: true
+        type: choice
+        options:
+          - ja
+          - en
+      dry_run:
+        description: "Keep enabled until production upload validation is complete"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: youtube-ad-${{ inputs.language }}
+  cancel-in-progress: false
+
+jobs:
+  scaffold-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run scaffold pipeline
+        shell: bash
+        run: |
+          args=(--language "${{ inputs.language }}")
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          python scripts/run_ad_pipeline.py "${args[@]}"
