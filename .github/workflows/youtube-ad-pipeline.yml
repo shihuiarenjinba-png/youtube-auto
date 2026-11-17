@@ -53,11 +53,25 @@ jobs:
           cache: pip
       - uses: browser-actions/setup-chrome@v2
         id: chrome
-      - name: Install runtime dependencies
+      - name: Ensure system media dependencies
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
-          python -m pip install --disable-pip-version-check -r requirements.txt
+          need_apt=0
+          command -v ffmpeg >/dev/null || need_apt=1
+          command -v ffprobe >/dev/null || need_apt=1
+          fc-match "Noto Sans CJK JP" | grep -qi "Noto Sans CJK JP" || need_apt=1
+          if [[ "$need_apt" == "1" ]]; then
+            sudo timeout 240s apt-get -o Acquire::Retries=3 update
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 240s \
+              apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install Python dependencies
+        timeout-minutes: 5
+        run: >-
+          python -m pip install --disable-pip-version-check
+          --retries 5 --timeout 30 -r requirements.txt
       - name: Run fail-closed safety tests
         run: python -m unittest discover -s tests -v
       - name: Generate and validate without credentials
@@ -81,11 +95,25 @@ jobs:
           cache: pip
       - uses: browser-actions/setup-chrome@v2
         id: chrome
-      - name: Install runtime dependencies
+      - name: Ensure system media dependencies
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
-          python -m pip install --disable-pip-version-check -r requirements.txt
+          need_apt=0
+          command -v ffmpeg >/dev/null || need_apt=1
+          command -v ffprobe >/dev/null || need_apt=1
+          fc-match "Noto Sans CJK JP" | grep -qi "Noto Sans CJK JP" || need_apt=1
+          if [[ "$need_apt" == "1" ]]; then
+            sudo timeout 240s apt-get -o Acquire::Retries=3 update
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 240s \
+              apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install Python dependencies
+        timeout-minutes: 5
+        run: >-
+          python -m pip install --disable-pip-version-check
+          --retries 5 --timeout 30 -r requirements.txt
       - name: Run fail-closed safety tests
         run: python -m unittest discover -s tests -v
       - name: Validate JA OAuth or perform controlled upload
@@ -114,11 +142,25 @@ jobs:
           cache: pip
       - uses: browser-actions/setup-chrome@v2
         id: chrome
-      - name: Install runtime dependencies
+      - name: Ensure system media dependencies
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
-          python -m pip install --disable-pip-version-check -r requirements.txt
+          need_apt=0
+          command -v ffmpeg >/dev/null || need_apt=1
+          command -v ffprobe >/dev/null || need_apt=1
+          fc-match "Noto Sans CJK JP" | grep -qi "Noto Sans CJK JP" || need_apt=1
+          if [[ "$need_apt" == "1" ]]; then
+            sudo timeout 240s apt-get -o Acquire::Retries=3 update
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 240s \
+              apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install Python dependencies
+        timeout-minutes: 5
+        run: >-
+          python -m pip install --disable-pip-version-check
+          --retries 5 --timeout 30 -r requirements.txt
       - name: Run fail-closed safety tests
         run: python -m unittest discover -s tests -v
       - name: Validate EN OAuth or perform controlled upload
