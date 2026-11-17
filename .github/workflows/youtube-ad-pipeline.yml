@@ -19,6 +19,7 @@ on:
           - dry-run
           - oauth-check
           - social-check
+          - social-dry-run
           - private
           - unlisted
       max_videos:
@@ -41,7 +42,7 @@ concurrency:
 
 jobs:
   dry-run:
-    if: inputs.mode == 'dry-run'
+    if: inputs.mode == 'dry-run' || inputs.mode == 'social-dry-run'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -69,7 +70,7 @@ jobs:
           --max-videos "${{ inputs.max_videos }}"
 
   ja-secure-validation:
-    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.language == 'ja'
+    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.language == 'ja'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -100,7 +101,7 @@ jobs:
           --max-videos "${{ inputs.max_videos }}"
 
   en-secure-validation:
-    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.language == 'en'
+    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.language == 'en'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -131,7 +132,7 @@ jobs:
           --max-videos "${{ inputs.max_videos }}"
 
   ja-social-read-only:
-    if: inputs.mode == 'social-check' && inputs.language == 'ja'
+    if: (inputs.mode == 'social-check' || inputs.mode == 'social-dry-run') && inputs.language == 'ja'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -150,7 +151,7 @@ jobs:
         run: python scripts/check_social_accounts.py --language ja
 
   en-social-read-only:
-    if: inputs.mode == 'social-check' && inputs.language == 'en'
+    if: (inputs.mode == 'social-check' || inputs.mode == 'social-dry-run') && inputs.language == 'en'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

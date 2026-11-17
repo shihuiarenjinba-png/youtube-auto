@@ -69,6 +69,13 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertTrue(en_ids)
         self.assertTrue(ja_ids.isdisjoint(en_ids))
 
+    def test_social_dry_run_cannot_enter_youtube_upload_jobs(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("inputs.mode != 'social-dry-run'", workflow)
+        self.assertIn("inputs.mode == 'dry-run' || inputs.mode == 'social-dry-run'", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

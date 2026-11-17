@@ -87,6 +87,8 @@ and EN values are configured.
 - local Zernio health: JP Instagram 2/2 ready, JP TikTok 2/2 ready,
   US Instagram 1/1 ready, US TikTok 1/1 ready
 - local TikTok capacity: all three accounts `canPostMore=true`, max 600 seconds
+- GitHub Zernio JP read-only check: PASS (`44108889923`), post false
+- GitHub Zernio US read-only check: PASS (`44108901821`), post false
 - JA OAuth check: PENDING secrets
 - EN OAuth check: PENDING secrets
 - controlled uploads: PENDING prior gates
