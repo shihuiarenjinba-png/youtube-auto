@@ -7,6 +7,7 @@ JSON or refreshed access token is written to disk.
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -177,19 +178,56 @@ class ActionsYouTubeClient:
         video_id = str((response or {}).get("id", ""))
         if not video_id:
             raise RuntimeError("YouTube upload completed without a video ID")
-        verified = self.service().videos().list(
-            part="snippet,status",
-            id=video_id,
-            maxResults=1,
-        ).execute()
-        items = verified.get("items") or []
-        if len(items) != 1:
+        expected_title = str(body["snippet"]["title"])
+        expected_description = str(body["snippet"]["description"])
+        verified_item: dict[str, Any] | None = None
+        processing_status = ""
+        # A returned video ID means ingestion succeeded, not that the file is
+        # playable. Wait for YouTube processing and fail closed on rejection.
+        for attempt in range(20):
+            verified = self.service().videos().list(
+                part="snippet,status,processingDetails",
+                id=video_id,
+                maxResults=1,
+            ).execute()
+            items = verified.get("items") or []
+            if len(items) == 1:
+                verified_item = items[0]
+                processing_status = str(
+                    (verified_item.get("processingDetails") or {}).get("processingStatus", "")
+                )
+                if processing_status == "succeeded":
+                    break
+                if processing_status in {"failed", "terminated"}:
+                    raise RuntimeError("YouTube rejected the uploaded video during processing")
+            if attempt < 19:
+                time.sleep(15)
+        if not verified_item:
             raise RuntimeError("Uploaded video could not be verified")
-        actual_privacy = str((items[0].get("status") or {}).get("privacyStatus", ""))
+        if processing_status != "succeeded":
+            raise RuntimeError("YouTube video processing did not complete before timeout")
+
+        snippet = verified_item.get("snippet") or {}
+        status = verified_item.get("status") or {}
+        actual_channel_id = str(snippet.get("channelId", ""))
+        actual_privacy = str(status.get("privacyStatus", ""))
+        actual_title = str(snippet.get("title", ""))
+        actual_description = str(snippet.get("description", ""))
+        if actual_channel_id != self.expected_channel_id:
+            raise RuntimeError("Uploaded video channel does not match the configured lane")
         if actual_privacy != privacy:
             raise RuntimeError("Uploaded video privacy does not match the requested privacy")
+        if actual_title != expected_title:
+            raise RuntimeError("Stored YouTube title does not match the generated title")
+        if actual_description != expected_description:
+            raise RuntimeError("Stored YouTube description/CTA/link does not match the generated value")
         return {
             "video_id": video_id,
             "url": f"https://youtu.be/{video_id}",
+            "channel_id": actual_channel_id,
             "privacy": actual_privacy,
+            "title": actual_title,
+            "description": actual_description,
+            "processing_status": processing_status,
+            "upload_status": str(status.get("uploadStatus", "")),
         }

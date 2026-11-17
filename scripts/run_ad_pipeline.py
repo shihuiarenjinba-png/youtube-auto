@@ -223,6 +223,10 @@ def main() -> int:
 
     if not generated and not existing:
         raise RuntimeError("No video was generated")
+    if upload_mode and not existing and len(uploaded) != args.max_videos:
+        raise RuntimeError(
+            f"Upload count mismatch: expected {args.max_videos}, completed {len(uploaded)}"
+        )
     status = "DRY_RUN_OK" if args.mode == "dry-run" else "UPLOAD_OK"
     print(json.dumps({
         "status": status,
