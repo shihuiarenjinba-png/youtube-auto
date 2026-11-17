@@ -80,6 +80,8 @@ and EN values are configured.
 - EN generated media: H.264, 1080x1920, 12.0s, audio present, 679217 bytes
 - temporary media cleanup: PASS for both lanes
 - uploads during dry-run: zero for both lanes
+- proven OAuth client mapping: JA and EN use different client IDs/secrets
+- proven token scopes (both lanes): `youtube.upload` + `youtube`
 - JA OAuth check: PENDING secrets
 - EN OAuth check: PENDING secrets
 - controlled uploads: PENDING prior gates

@@ -42,15 +42,19 @@ scheduled-path test pass.
 
 ## Required GitHub Actions secrets
 
-- `YOUTUBE_CLIENT_ID`
-- `YOUTUBE_CLIENT_SECRET`
+- `YOUTUBE_CLIENT_ID_JA`
+- `YOUTUBE_CLIENT_SECRET_JA`
+- `YOUTUBE_CLIENT_ID_EN`
+- `YOUTUBE_CLIENT_SECRET_EN`
 - `YOUTUBE_REFRESH_TOKEN_JA`
 - `YOUTUBE_REFRESH_TOKEN_EN`
 
-Each refresh token must have these scopes:
+The proven JA and EN credentials use different OAuth clients. Do not reuse one
+lane's client ID/secret for the other lane. The current production refresh
+tokens were issued with these scopes:
 
 - `https://www.googleapis.com/auth/youtube.upload`
-- `https://www.googleapis.com/auth/youtube.readonly`
+- `https://www.googleapis.com/auth/youtube`
 
 No JA-to-EN or EN-to-JA token fallback exists.
 
@@ -84,11 +88,14 @@ python scripts/run_ad_pipeline.py --language en --mode dry-run --max-videos 1
 
 ## Proposed schedules (not enabled)
 
-- JA: `17 21 * * *` UTC = 06:17 JST
-- EN: `47 22 * * *` UTC = 07:47 JST
+- JA: 05:00 Asia/Tokyo (`0 20 * * *` UTC on the previous UTC date)
+- EN: 05:00 America/New_York (`0 9 * * *` and `0 10 * * *` UTC candidates)
 
-GitHub cron runs in UTC and may start later under load. These values are only a
-post-validation proposal; they are deliberately absent from the workflow today.
+New York alternates between UTC-4 and UTC-5. The final scheduled workflow will
+accept both UTC candidates and use a timezone-aware runtime gate so only the run
+whose New York local hour is 05:00 proceeds. GitHub cron may start later under
+load. These values are deliberately absent from the workflow until controlled
+uploads pass.
 
 ## Durability note
 

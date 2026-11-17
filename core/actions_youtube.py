@@ -19,7 +19,9 @@ from googleapiclient.http import MediaFileUpload
 
 SCOPES = (
     "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube.readonly",
+    # Proven JA/EN refresh tokens were issued with the full YouTube scope.
+    # OAuth refresh cannot replace a token's original grant with readonly.
+    "https://www.googleapis.com/auth/youtube",
 )
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 

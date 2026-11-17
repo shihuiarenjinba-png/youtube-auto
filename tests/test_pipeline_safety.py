@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import os
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 from scripts.run_ad_pipeline import ALLOWED_MODES, lane_card_check, marketing_lines
+from scripts.schedule_gate import selected_cron, should_run
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +34,28 @@ class PipelineSafetyTests(unittest.TestCase):
     def test_language_mismatch_fails_closed(self):
         with self.assertRaises(RuntimeError):
             lane_card_check([{"lang": "en"}], "ja")
+
+    def test_workflow_uses_distinct_oauth_clients(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("secrets.YOUTUBE_CLIENT_ID_JA", workflow)
+        self.assertIn("secrets.YOUTUBE_CLIENT_SECRET_JA", workflow)
+        self.assertIn("secrets.YOUTUBE_CLIENT_ID_EN", workflow)
+        self.assertIn("secrets.YOUTUBE_CLIENT_SECRET_EN", workflow)
+        self.assertNotIn("secrets.YOUTUBE_CLIENT_ID }}", workflow)
+        self.assertNotIn("secrets.YOUTUBE_CLIENT_SECRET }}", workflow)
+
+    def test_ja_five_am_cron(self):
+        self.assertEqual(selected_cron("ja", datetime(2026, 11, 18).date()), "0 20 * * *")
+
+    def test_new_york_five_am_tracks_dst(self):
+        winter = datetime(2026, 1, 15, 10, tzinfo=timezone.utc)
+        summer = datetime(2026, 7, 15, 9, tzinfo=timezone.utc)
+        self.assertTrue(should_run("en", "0 10 * * *", winter))
+        self.assertFalse(should_run("en", "0 9 * * *", winter))
+        self.assertTrue(should_run("en", "0 9 * * *", summer))
+        self.assertFalse(should_run("en", "0 10 * * *", summer))
 
 
 if __name__ == "__main__":
