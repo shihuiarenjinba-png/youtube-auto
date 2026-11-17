@@ -1,0 +1,20 @@
+# Secrets / OAuth
+.env
+.env.*
+client_secret*.json
+token*.json
+credentials*.json
+
+# Generated media
+output/
+tmp/
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
+
+# Python
+__pycache__/
+*.pyc
+.venv/
