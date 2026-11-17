@@ -11,7 +11,8 @@ The repository is still in the validation phase:
 - dry-runs receive no OAuth secrets
 - JA and EN secure jobs receive only their own refresh token
 - OAuth must resolve to the exact configured channel ID before generation/upload
-- controlled uploads require both a lane-specific CTA and link
+- `private` uploads are validation-only and intentionally ignore marketing CTA/link variables
+- `unlisted` uploads require valid lane-specific CTA and public HTTPS product links
 - generated PNG/MP4 files are deleted before the runner exits and are not uploaded as artifacts
 
 ## Proven source
@@ -34,8 +35,8 @@ Manual modes:
 
 - `dry-run`: generate, encode, run `ffprobe`, and delete media; no secrets supplied
 - `oauth-check`: refresh OAuth and verify the exact lane channel; no generation/upload
-- `private`: controlled private upload
-- `unlisted`: controlled unlisted upload
+- `private`: controlled validation upload; marketing CTA/link variables are intentionally ignored and a validation-only notice is used
+- `unlisted`: controlled marketing-path upload; valid CTA and public HTTPS product URL are required
 
 Public upload and schedules stay unavailable until both controlled uploads and a
 scheduled-path test pass.
