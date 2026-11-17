@@ -66,8 +66,9 @@ The behavior-preserving changes are:
 The proven live uploader generates zodiac/fortune Shorts with nonverbal BGM. It
 does not contain confirmed product campaign URLs or product-specific CTA data.
 The Actions port therefore adds independent `AD_CTA_*` and `AD_LINK_*` gates but
-does not invent values. Controlled uploads remain blocked until the official JA
-and EN values are configured.
+does not invent values. `private` is a technical validation path and deliberately
+omits marketing CTA/link values. The `unlisted` marketing path remains fail-closed
+until official JA and EN values pass validation.
 
 ## Validation gate status
 
@@ -93,11 +94,36 @@ and EN values are configured.
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
 - GitHub US social dry-run: PASS (`44109231887`), generated H.264
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
-- JA controlled private upload run `44113331556`: YouTube ingestion and processing
-  PASS (`pYSGKyBINaU`, correct JA channel, private, one upload), but the gate is
-  HOLD because repository variables contained literal placeholder CTA/link text
-  instead of an official HTTPS product URL. EN upload was not started.
+- JA controlled private upload run `44113331556` (run HEAD `24aded6`): technical
+  YouTube ingestion and processing PASS (`pYSGKyBINaU`, channel
+  `UCCuMoJvZvdeUTdLaZR5tzPw`, private, one upload, H.264 1080x1920, 12 seconds,
+  audio present, processing `succeeded`, upload `processed`, temporary media
+  removed). This run predated private-mode marketing isolation and therefore is
+  not evidence that the marketing metadata is production-ready.
+- Private-mode marketing isolation was added in `5c54d52` and covered by the
+  fail-closed tests added in `71593f7` / `7dc470f`. Private mode now uses an
+  explicit validation notice and does not consume `AD_CTA_*` / `AD_LINK_*`.
+- First EN private attempt `44192392768` (run HEAD `7dc470f`) was cancelled before
+  safety tests, OAuth, generation, or upload because the runner stalled installing
+  system dependencies. No video was uploaded in that attempt.
+- Dependency installation was bounded and split in `bf6a395a710a1636e25376554c552bb456a55a19`.
+- EN controlled private retry `44193823519` (run HEAD
+  `bf6a395a710a1636e25376554c552bb456a55a19`): PASS. One video was uploaded:
+  `jFtQQl3mByM`, channel `UCeyLvckqiM7eYMgKOAh_OkA`, privacy `private`, H.264
+  1080x1920, 12 seconds, audio present, processing `succeeded`, upload `processed`,
+  and temporary media removed. The stored description contains the EN private
+  validation notice and no placeholder CTA/product URL.
+- EN run log review: GitHub masking was active for all three OAuth environment
+  values; no recognizable access token, refresh token, client secret, API key, or
+  private-key pattern was found. The JA channel ID and JA secret names were absent.
+- JA and EN GitHub Actions private upload routes: TECHNICAL PASS. This establishes
+  generation, lane-fixed OAuth/channel verification, one-item upload, YouTube
+  processing verification, and runner cleanup; it does not approve marketing
+  content or public posting.
 - OAuth validation gate: PASS for both JA and EN (see run IDs above)
-- controlled uploads: HOLD until all four official `AD_CTA_*` / `AD_LINK_*`
-  values are confirmed and configured
+- marketing-path (`unlisted`) controlled upload: HOLD. The EN private run still
+  displayed literal `Official English CTA` / `Official EN product URL` repository
+  variable values in the Actions environment. Private mode correctly ignored them,
+  but all four official `AD_CTA_*` / `AD_LINK_*` values must be re-confirmed before
+  any unlisted marketing test.
 - recurring schedules/public mode: intentionally disabled
