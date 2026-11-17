@@ -93,7 +93,7 @@ and EN values are configured.
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
 - GitHub US social dry-run: PASS (`44109231887`), generated H.264
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
-- JA OAuth check: PENDING secrets
-- EN OAuth check: PENDING secrets
-- controlled uploads: PENDING prior gates
+- OAuth validation gate: PASS for both JA and EN (see run IDs above)
+- controlled uploads: HOLD until all four official `AD_CTA_*` / `AD_LINK_*`
+  values are confirmed and configured
 - recurring schedules/public mode: intentionally disabled
