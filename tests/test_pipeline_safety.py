@@ -103,6 +103,26 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("inputs.mode != 'social-dry-run'", workflow)
         self.assertIn("inputs.mode == 'dry-run' || inputs.mode == 'social-dry-run'", workflow)
 
+    def test_social_media_upload_cannot_enter_youtube_upload_jobs(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("- social-media-upload", workflow)
+        self.assertGreaterEqual(workflow.count("inputs.mode != 'social-media-upload'"), 2)
+        self.assertIn("ja-social-media-upload:", workflow)
+        self.assertIn("en-social-media-upload:", workflow)
+
+    def test_social_media_probe_never_creates_post(self):
+        probe = (ROOT / "scripts" / "upload_social_media_probe.py").read_text(encoding="utf-8")
+        self.assertNotIn("/posts", probe)
+        self.assertIn('"social_post_created": False', probe)
+        self.assertIn('"social_post_performed": False', probe)
+
+    def test_zernio_probe_uses_presigned_media_upload_only(self):
+        client = (ROOT / "core" / "actions_zernio.py").read_text(encoding="utf-8")
+        self.assertIn('"/media/presign"', client)
+        self.assertNotIn('"/posts"', client)
+
 
 if __name__ == "__main__":
     unittest.main()
