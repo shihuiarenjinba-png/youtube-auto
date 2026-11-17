@@ -1,0 +1,16 @@
+{
+  "languages": {
+    "ja": {
+      "label": "Japanese advertising lane",
+      "timezone": "Asia/Tokyo",
+      "schedule": "TO_BE_FIXED_AFTER_PRODUCTION_VALIDATION",
+      "privacy_during_validation": "private"
+    },
+    "en": {
+      "label": "English advertising lane",
+      "timezone": "Asia/Tokyo",
+      "schedule": "TO_BE_FIXED_AFTER_PRODUCTION_VALIDATION",
+      "privacy_during_validation": "private"
+    }
+  }
+}
