@@ -1,0 +1,27 @@
+{
+  "base_url": "https://zernio.com/api/v1",
+  "languages": {
+    "ja": {
+      "market": "JP",
+      "instagram": [
+        {"account_id": "6a9799d277555aae01bd18c1", "credential_env": "ZERNIO_API_KEY_1"},
+        {"account_id": "6a97e50d77555aae01bf3321", "credential_env": "ZERNIO_API_KEY_2"}
+      ],
+      "tiktok": [
+        {"account_id": "6a97712377555aae01bbe410", "credential_env": "ZERNIO_API_KEY_1"},
+        {"account_id": "6a97e53877555aae01bf3417", "credential_env": "ZERNIO_API_KEY_2"}
+      ],
+      "max_videos_per_day": 2
+    },
+    "en": {
+      "market": "US",
+      "instagram": [
+        {"account_id": "6a97a82b77555aae01bd7b83", "credential_env": "ZERNIO_API_KEY_1"}
+      ],
+      "tiktok": [
+        {"account_id": "6a979de977555aae01bd41ca", "credential_env": "ZERNIO_API_KEY_1"}
+      ],
+      "max_videos_per_day": 2
+    }
+  }
+}

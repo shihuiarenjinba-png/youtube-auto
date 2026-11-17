@@ -57,6 +57,18 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertTrue(should_run("en", "0 9 * * *", summer))
         self.assertFalse(should_run("en", "0 10 * * *", summer))
 
+    def test_social_markets_and_accounts_never_overlap(self):
+        config = json.loads((ROOT / "config" / "social_lanes.json").read_text(encoding="utf-8"))
+        ja = config["languages"]["ja"]
+        en = config["languages"]["en"]
+        self.assertEqual(ja["market"], "JP")
+        self.assertEqual(en["market"], "US")
+        ja_ids = {row["account_id"] for platform in ("instagram", "tiktok") for row in ja[platform]}
+        en_ids = {row["account_id"] for platform in ("instagram", "tiktok") for row in en[platform]}
+        self.assertTrue(ja_ids)
+        self.assertTrue(en_ids)
+        self.assertTrue(ja_ids.isdisjoint(en_ids))
+
 
 if __name__ == "__main__":
     unittest.main()

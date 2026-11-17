@@ -68,6 +68,23 @@ No JA-to-EN or EN-to-JA token fallback exists.
 These remain unset until the official CTA and URLs are confirmed. Dry-runs do
 not require them; upload modes fail closed without them.
 
+## Instagram and TikTok validation
+
+The proven Zernio account mapping is also represented as strict JA/JP and EN/US
+lanes. `social-check` is read-only: it checks account identity, `can_post`, token
+health, reconnect state, and TikTok `canPostMore`; it never uploads media or
+creates a post.
+
+Required repository secrets for this check:
+
+- `ZERNIO_API_KEY_JP_1`
+- `ZERNIO_API_KEY_JP_2`
+- `ZERNIO_API_KEY_US_1`
+
+These are three different keys. No key or account falls back across markets.
+Social publishing remains disabled until official CTA/URLs and controlled tests
+are complete.
+
 ## Fixed lane identities
 
 - JA: proven local route `main`, channel `UCCuMoJvZvdeUTdLaZR5tzPw`

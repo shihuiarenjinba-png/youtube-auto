@@ -82,6 +82,11 @@ and EN values are configured.
 - uploads during dry-run: zero for both lanes
 - proven OAuth client mapping: JA and EN use different client IDs/secrets
 - proven token scopes (both lanes): `youtube.upload` + `youtube`
+- JA OAuth check: PASS (`44038471189`), channel ID matched, upload false
+- EN OAuth check: PASS (`44038475250`), channel ID matched, upload false
+- local Zernio health: JP Instagram 2/2 ready, JP TikTok 2/2 ready,
+  US Instagram 1/1 ready, US TikTok 1/1 ready
+- local TikTok capacity: all three accounts `canPostMore=true`, max 600 seconds
 - JA OAuth check: PENDING secrets
 - EN OAuth check: PENDING secrets
 - controlled uploads: PENDING prior gates
