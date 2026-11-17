@@ -31,6 +31,26 @@ class PipelineSafetyTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             marketing_lines(require=True)
 
+    @patch.dict(
+        os.environ,
+        {"AD_CTA": "正式な日本語CTA", "AD_LINK": "正式なJA商品URL"},
+        clear=True,
+    )
+    def test_placeholder_marketing_values_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            marketing_lines(require=True)
+
+    @patch.dict(
+        os.environ,
+        {"AD_CTA": "詳しくはこちら", "AD_LINK": "https://example.com/product"},
+        clear=True,
+    )
+    def test_absolute_https_marketing_values_pass(self):
+        self.assertEqual(
+            marketing_lines(require=True),
+            ["詳しくはこちら", "https://example.com/product"],
+        )
+
     def test_language_mismatch_fails_closed(self):
         with self.assertRaises(RuntimeError):
             lane_card_check([{"lang": "en"}], "ja")

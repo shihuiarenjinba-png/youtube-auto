@@ -9,6 +9,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 
@@ -88,6 +89,18 @@ def marketing_lines(require: bool) -> list[str]:
         raise RuntimeError("AD_CTA and AD_LINK must both be configured for an upload")
     if bool(cta) != bool(link):
         raise RuntimeError("AD_CTA and AD_LINK must be configured together")
+    if cta and link:
+        placeholder_ctas = {"正式な日本語CTA", "Official English CTA"}
+        if cta in placeholder_ctas or len(cta) < 4:
+            raise RuntimeError("AD_CTA is still a placeholder or is too short")
+        parsed = urlparse(link)
+        if (
+            parsed.scheme != "https"
+            or not parsed.netloc
+            or any(character.isspace() for character in link)
+            or (parsed.hostname or "").lower() in {"localhost", "127.0.0.1"}
+        ):
+            raise RuntimeError("AD_LINK must be an absolute public https URL")
     return [cta, link] if cta and link else []
 
 

@@ -93,6 +93,10 @@ and EN values are configured.
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
 - GitHub US social dry-run: PASS (`44109231887`), generated H.264
   1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
+- JA controlled private upload run `44113331556`: YouTube ingestion and processing
+  PASS (`pYSGKyBINaU`, correct JA channel, private, one upload), but the gate is
+  HOLD because repository variables contained literal placeholder CTA/link text
+  instead of an official HTTPS product URL. EN upload was not started.
 - OAuth validation gate: PASS for both JA and EN (see run IDs above)
 - controlled uploads: HOLD until all four official `AD_CTA_*` / `AD_LINK_*`
   values are confirmed and configured
