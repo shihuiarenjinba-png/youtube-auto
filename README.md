@@ -75,7 +75,7 @@ The proven Zernio account mapping is also represented as strict JA/JP and EN/US
 lanes. `social-check` is read-only: it checks account identity, `can_post`, token
 health, reconnect state, and TikTok `canPostMore`. `social-dry-run` adds the full
 Chrome/MoviePy/FFmpeg video-generation validation in the same workflow run.
-Neither mode uploads media or creates a post.
+Neither mode creates a social post. A separate `social-media-upload` validation mode generates one proven MP4, re-checks the strict lane/account health, and uploads the file only to Zernio temporary media storage. It never calls the post-creation endpoint and therefore does not publish to Instagram or TikTok. The returned media URL is not printed; only hashes/host metadata are logged.
 
 Required repository secrets for this check:
 
