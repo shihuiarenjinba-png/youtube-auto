@@ -89,6 +89,10 @@ and EN values are configured.
 - local TikTok capacity: all three accounts `canPostMore=true`, max 600 seconds
 - GitHub Zernio JP read-only check: PASS (`44108889923`), post false
 - GitHub Zernio US read-only check: PASS (`44108901821`), post false
+- GitHub JP social dry-run: PASS (`44109224974`), generated H.264
+  1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
+- GitHub US social dry-run: PASS (`44109231887`), generated H.264
+  1080x1920/12s/audio, Zernio health PASS, upload/post false, media removed
 - JA OAuth check: PENDING secrets
 - EN OAuth check: PENDING secrets
 - controlled uploads: PENDING prior gates
