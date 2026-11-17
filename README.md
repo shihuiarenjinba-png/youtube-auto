@@ -1,57 +1,99 @@
 # youtube-auto
 
-GitHub Actions based YouTube advertisement automation scaffold.
+GitHub Actions port of the proven local JA/EN YouTube card-video uploader.
 
-## Current safety state
+## Safety state
 
-This repository is intentionally initialized in **manual + dry-run only** mode.
+The repository is still in the validation phase:
 
-- No scheduled publishing is enabled yet.
-- No YouTube credentials are stored in the repository.
-- No upload is performed by the scaffold.
-- The production implementation must be copied from the existing working YouTube advertising pipeline and verified before schedules are enabled.
+- manual `workflow_dispatch` only; schedules are not enabled
+- `public` is not an available workflow mode
+- dry-runs receive no OAuth secrets
+- JA and EN secure jobs receive only their own refresh token
+- OAuth must resolve to the exact configured channel ID before generation/upload
+- controlled uploads require both a lane-specific CTA and link
+- generated PNG/MP4 files are deleted before the runner exits and are not uploaded as artifacts
 
-## Target architecture
+## Proven source
 
-1. GitHub Actions starts a short-lived Ubuntu runner.
-2. Existing production video-generation logic is ported into this repository.
-3. Japanese and English advertisements are generated independently.
-4. Japanese and English schedules use different posting times.
-5. YouTube OAuth credentials are read only from GitHub Actions Secrets.
-6. Generated media is uploaded directly to YouTube and removed from the runner after success.
-7. No long-term video artifact storage is required unless debugging is explicitly enabled.
+The copied implementation comes from the live local checkout at
+`C:\Users\aaron\Desktop\auto-shorts-studio`, whose Git HEAD was
+`c26df2ddca3e65dea411f4efbfd935303ed98292` during the port. The live log
+`logs/auto_upload_2026-11-17.log` records four successful JA uploads followed by
+four successful EN uploads on 2026-11-17, with zero generation/upload errors.
 
-## Required production gates
+The port reuses its fortune/card planning, JA/EN copy, HTML templates, Chromium
+rendering model, MoviePy/FFmpeg composition, BGM assets, and YouTube resumable
+upload behavior. See `docs/PORT_PROVENANCE_2026-11-17.md` for the exact boundary.
 
-Before enabling schedules:
+## Workflow
 
-- Reproduce the current working advertisement output.
-- Separate JA and EN metadata, narration/text, assets and schedules.
-- Verify ffmpeg/media generation on ubuntu-latest.
-- Verify a full dry-run for both languages.
-- Verify YouTube OAuth refresh and upload with GitHub Secrets.
-- Perform one controlled private/unlisted upload per language.
-- Confirm title, description, links, thumbnail, audio, video and language.
-- Only then enable automatic public advertising uploads.
+Workflow: `YouTube Ad Pipeline - Validation`
 
-## Secret names
+Manual modes:
 
-Production code should reference secret names only. Do not commit values.
+- `dry-run`: generate, encode, run `ffprobe`, and delete media; no secrets supplied
+- `oauth-check`: refresh OAuth and verify the exact lane channel; no generation/upload
+- `private`: controlled private upload
+- `unlisted`: controlled unlisted upload
 
-- YOUTUBE_CLIENT_ID
-- YOUTUBE_CLIENT_SECRET
-- YOUTUBE_REFRESH_TOKEN_JA
-- YOUTUBE_REFRESH_TOKEN_EN
+Public upload and schedules stay unavailable until both controlled uploads and a
+scheduled-path test pass.
 
-If both languages intentionally use one channel/account, document that decision and use the minimum required secret set.
+## Required GitHub Actions secrets
 
-## Entry point
+- `YOUTUBE_CLIENT_ID`
+- `YOUTUBE_CLIENT_SECRET`
+- `YOUTUBE_REFRESH_TOKEN_JA`
+- `YOUTUBE_REFRESH_TOKEN_EN`
 
-Current scaffold:
+Each refresh token must have these scopes:
+
+- `https://www.googleapis.com/auth/youtube.upload`
+- `https://www.googleapis.com/auth/youtube.readonly`
+
+No JA-to-EN or EN-to-JA token fallback exists.
+
+## Required GitHub Actions variables for uploads
+
+- `AD_CTA_JA`
+- `AD_LINK_JA`
+- `AD_CTA_EN`
+- `AD_LINK_EN`
+
+These remain unset until the official CTA and URLs are confirmed. Dry-runs do
+not require them; upload modes fail closed without them.
+
+## Fixed lane identities
+
+- JA: proven local route `main`, channel `UCCuMoJvZvdeUTdLaZR5tzPw`
+- EN: proven local route `english`, channel `UCeyLvckqiM7eYMgKOAh_OkA`
+
+Channel IDs are public identifiers and are committed only as identity gates.
+
+## Local dry-run
+
+Install Python dependencies, FFmpeg/ffprobe, and Chrome/Chromium, then run:
 
 ```bash
-python scripts/run_ad_pipeline.py --language ja --dry-run
-python scripts/run_ad_pipeline.py --language en --dry-run
+python scripts/run_ad_pipeline.py --language ja --mode dry-run --max-videos 1
+python scripts/run_ad_pipeline.py --language en --mode dry-run --max-videos 1
 ```
 
-The code-owner should replace the scaffold internals with the proven existing production pipeline while preserving the safety gates above.
+`CHROME_PATH` may be set to an explicit Chrome/Chromium executable.
+
+## Proposed schedules (not enabled)
+
+- JA: `17 21 * * *` UTC = 06:17 JST
+- EN: `47 22 * * *` UTC = 07:47 JST
+
+GitHub cron runs in UTC and may start later under load. These values are only a
+post-validation proposal; they are deliberately absent from the workflow today.
+
+## Durability note
+
+Refresh tokens can still be revoked, a Google OAuth consent app left in testing
+can issue short-lived refresh tokens, and GitHub may disable schedules after
+extended repository inactivity. The pipeline detects these conditions and stops
+without publishing; no software can truthfully guarantee an account will run
+literally forever without monitoring.

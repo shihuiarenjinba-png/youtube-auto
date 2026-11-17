@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; }
+  body {
+    font-family: "Segoe UI", "Arial", sans-serif;
+    background: linear-gradient(160deg, #2b1763 0%, #7b2f8f 55%, #c0397a 100%);
+    color: #fff; display: flex; flex-direction: column;
+    align-items: center; padding: 64px 56px 56px;
+  }
+  .kicker { font-size: 30px; font-weight: bold; letter-spacing: 4px; opacity: .9;
+    text-transform: uppercase; }
+  .date { font-size: 30px; font-weight: bold; margin-top: 10px; opacity: .95;
+    background: rgba(255,255,255,.16); border-radius: 999px; padding: 8px 30px; }
+  .star { display: flex; flex-direction: column; align-items: center; margin-top: 30px; }
+  .sym { font-size: 120px; line-height: 1; text-shadow: 0 6px 26px rgba(0,0,0,.35); }
+  .nm { font-size: 76px; font-weight: 900; margin-top: 6px;
+    text-shadow: 0 4px 18px rgba(0,0,0,.3); }
+  .nm small { display: block; font-size: 28px; font-weight: bold; opacity: .9;
+    letter-spacing: 3px; margin-top: 4px; text-transform: uppercase; }
+  .cards { width: 100%; margin-top: 34px; display: flex; flex-direction: column; gap: 16px; }
+  .row { background: rgba(255,255,255,.12); border-radius: 22px; padding: 24px 30px; }
+  .row .lab { font-size: 28px; font-weight: 900; opacity: .95; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 1px; }
+  .row .val { font-size: 32px; line-height: 1.32; }
+  .row.adv { background: rgba(255,235,120,.95); color: #5a3d00; }
+  .lucky { width: 100%; margin-top: 18px; display: flex; gap: 16px; }
+  .lucky .box { flex: 1; background: rgba(255,255,255,.96); color: #2b1763;
+    border-radius: 22px; padding: 22px 24px; text-align: center; }
+  .lucky .box .lab { font-size: 24px; font-weight: 900; color: #c0397a;
+    text-transform: uppercase; letter-spacing: 1px; }
+  .lucky .box .val { font-size: 38px; font-weight: 900; margin-top: 6px; }
+  .foot { font-size: 26px; opacity: .92; margin-top: auto; padding-top: 24px; }
+</style>
+</head>
+<body>
+  <div class="kicker">&#11088; Today's Star</div>
+  <div class="date">{{DATE}}</div>
+  <div class="star">
+    <div class="sym">{{SYM}}</div>
+    <div class="nm">{{NAME}}<small>No.1 luck today</small></div>
+  </div>
+  <div class="cards">
+    <div class="row"><div class="lab">&#10024; Overall</div><div class="val">{{OVERALL}}</div></div>
+    <div class="row"><div class="lab">&#128149; Love</div><div class="val">{{LOVE}}</div></div>
+    <div class="row"><div class="lab">&#128188; Work</div><div class="val">{{WORK}}</div></div>
+    <div class="row"><div class="lab">&#128176; Money</div><div class="val">{{MONEY}}</div></div>
+    <div class="row adv"><div class="lab">&#128161; Advice</div><div class="val">{{ADVICE}}</div></div>
+  </div>
+  <div class="lucky">
+    <div class="box"><div class="lab">Lucky Color</div><div class="val">{{COLOR}}</div></div>
+    <div class="box"><div class="lab">Lucky Item</div><div class="val">{{ITEM}}</div></div>
+  </div>
+  <div class="foot">What rank did your sign get? Tell us in the comments</div>
+</body>
+</html>

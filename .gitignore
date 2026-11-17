@@ -13,6 +13,12 @@ tmp/
 *.mkv
 *.wav
 *.mp3
+!assets/bgm/music/*.wav
+
+# Ephemeral records/cards are regenerated for the runner's JST date.
+data/rag/examples.jsonl
+data/rag/html/*
+!data/rag/html/.gitkeep
 
 # Python
 __pycache__/

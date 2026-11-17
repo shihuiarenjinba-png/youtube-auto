@@ -1,0 +1,112 @@
+{
+  "_meta": {
+    "kind": "fortune_phrases",
+    "lang": "en",
+    "note": "Phrase bank for the daily fortune spotlight. By rank tier (top/high/mid/low) and category. Used as the fallback when Ollama is offline. Seeded by date x sign for deterministic picks.",
+    "fields": "overall/love/work/money (by tier), advice, colors, items"
+  },
+  "overall": {
+    "top": [
+      "A specially blessed day - the more you move, the more luck follows.",
+      "Everything clicks into place. Today, you are the main character.",
+      "The effort you've put in pays off all at once.",
+      "Instinct and action line up perfectly; wishes come true with ease.",
+      "A day full of fresh encounters and golden opportunities.",
+      "Trust your gut and you win - your intuition is spot on today.",
+      "You sit right at the center of good fortune; your smile draws even more."
+    ],
+    "high": [
+      "Ride the good wave and the day feels light and easy.",
+      "One gentle push moves things forward with a tailwind.",
+      "Thoughtful manners earn you real recognition.",
+      "A small risk turns into an unexpected win."
+    ],
+    "mid": [
+      "Keep your own pace and the day goes just fine.",
+      "Steady, ordinary effort quietly supports your luck.",
+      "A grateful heart lifts the flow a notch."
+    ],
+    "low": [
+      "A day to play defense and tidy things up step by step.",
+      "Breathe deep, don't rush, and there's nothing to worry about.",
+      "Notice the small joys at your feet and the mood shifts."
+    ]
+  },
+  "love": {
+    "top": [
+      "An honest word closes the distance fast - today favors a bold move.",
+      "Your smile is your charm; both meetings and progress are blessed.",
+      "The more you open up, the deeper love grows. Treasure your time together.",
+      "A small kindness lands straight in the other person's heart."
+    ],
+    "high": [
+      "Gentle words draw a good connection your way.",
+      "Listen closely and the bond takes a step forward."
+    ],
+    "mid": [
+      "Keep your usual warmth; a calm day builds trust.",
+      "Staying natural and unhurried is the shortest path."
+    ],
+    "low": [
+      "Be the listener today and hearts grow closer.",
+      "Pause before you speak to avoid small mix-ups."
+    ]
+  },
+  "work": {
+    "top": [
+      "Careful work earns high praise and opens a door.",
+      "Your decisions are sharp - a bold move brings results.",
+      "Things run smoothly and trust around you deepens.",
+      "A new challenge becomes a big step toward your future."
+    ],
+    "high": [
+      "Steady effort turns into clear progress.",
+      "One thoughtful touch quietly raises your standing."
+    ],
+    "mid": [
+      "Follow your usual steps with care for a stable day.",
+      "Don't overdo it; sorting priorities keeps you moving."
+    ],
+    "low": [
+      "A day to firm up the foundation - double-check things.",
+      "One calm step at a time; prep pays off tomorrow."
+    ]
+  },
+  "money": {
+    "top": [
+      "A pleasant windfall or a lucky bargain may be on the way.",
+      "Small savings bring big peace of mind; cash flow falls in line.",
+      "Your eye for value is sharp - a smart shopping day.",
+      "Money spent with gratitude finds its way back to you."
+    ],
+    "high": [
+      "A little ingenuity creates welcome breathing room in your budget.",
+      "Knowing what you truly need makes for a satisfying day."
+    ],
+    "mid": [
+      "Your usual habits are enough; a calm money day.",
+      "Pause before you open your wallet and you won't regret it."
+    ],
+    "low": [
+      "A day to play defense - give impulse buys a rest.",
+      "Pay yourself first and the flow steadies."
+    ]
+  },
+  "advice": [
+    "Take three breaths before you charge - that pause turns drive into results.",
+    "Don't chase perfection; have the courage to lean on others at 70%.",
+    "Say a small 'thank you' out loud and luck comes around.",
+    "When in doubt, choose the path that feels lighter.",
+    "Give yourself credit for the small step you took today.",
+    "Before fitting in with others, put your own 'I like this' first.",
+    "Put bottled-up feelings into words, a little at a time, with someone you trust.",
+    "A short rest brings your next bright spell."
+  ],
+  "colors": ["Red", "Blue", "Green", "Yellow", "Gold", "Silver", "White",
+             "Purple", "Pink", "Orange", "Turquoise", "Beige", "Lavender", "Sky Blue"],
+  "items": ["coffee", "a blue pen", "a handkerchief", "a lucky charm", "music",
+            "something sweet", "a green plant", "a white shirt", "a notebook",
+            "fresh socks", "aromatherapy", "a favorite photo", "a warm cup of tea",
+            "a small flower", "a favorite book", "a silver accessory", "a lemon",
+            "a candle", "a hint of mint", "a letter"]
+}

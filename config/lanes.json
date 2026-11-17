@@ -1,0 +1,24 @@
+{
+  "languages": {
+    "ja": {
+      "language": "ja",
+      "label": "Japanese production lane (proven route: main)",
+      "expected_channel_id": "UCCuMoJvZvdeUTdLaZR5tzPw",
+      "timezone": "Asia/Tokyo",
+      "audio": "language-neutral proven BGM",
+      "cta_env": "AD_CTA_JA",
+      "link_env": "AD_LINK_JA",
+      "schedule": "DISABLED_UNTIL_CONTROLLED_UPLOAD_PASSES"
+    },
+    "en": {
+      "language": "en",
+      "label": "English production lane (proven route: english)",
+      "expected_channel_id": "UCeyLvckqiM7eYMgKOAh_OkA",
+      "timezone": "Asia/Tokyo",
+      "audio": "language-neutral proven BGM",
+      "cta_env": "AD_CTA_EN",
+      "link_env": "AD_LINK_EN",
+      "schedule": "DISABLED_UNTIL_CONTROLLED_UPLOAD_PASSES"
+    }
+  }
+}

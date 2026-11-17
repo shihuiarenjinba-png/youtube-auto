@@ -1,20 +1,35 @@
-name: YouTube Ad Pipeline - Scaffold
+name: YouTube Ad Pipeline - Validation
 
 on:
   workflow_dispatch:
     inputs:
       language:
-        description: "Advertisement language"
+        description: "Strict language/channel lane"
         required: true
         type: choice
         options:
           - ja
           - en
-      dry_run:
-        description: "Keep enabled until production upload validation is complete"
+      mode:
+        description: "Public upload is intentionally unavailable during validation"
         required: true
-        default: true
-        type: boolean
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - oauth-check
+          - private
+          - unlisted
+      max_videos:
+        description: "Use 1 for validation; proven production count is 4"
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+          - "4"
 
 permissions:
   contents: read
@@ -24,24 +39,92 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  scaffold-check:
+  dry-run:
+    if: inputs.mode == 'dry-run'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Run scaffold pipeline
-        shell: bash
+          cache: pip
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Install runtime dependencies
         run: |
-          args=(--language "${{ inputs.language }}")
-          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
-            args+=(--dry-run)
-          fi
-          python scripts/run_ad_pipeline.py "${args[@]}"
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Run fail-closed safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Generate and validate without credentials
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: >-
+          python scripts/run_ad_pipeline.py
+          --language "${{ inputs.language }}"
+          --mode dry-run
+          --max-videos "${{ inputs.max_videos }}"
+
+  ja-secure-validation:
+    if: inputs.mode != 'dry-run' && inputs.language == 'ja'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Validate JA OAuth or perform controlled upload
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_JA }}
+          AD_CTA: ${{ vars.AD_CTA_JA }}
+          AD_LINK: ${{ vars.AD_LINK_JA }}
+        run: >-
+          python scripts/run_ad_pipeline.py
+          --language ja
+          --mode "${{ inputs.mode }}"
+          --max-videos "${{ inputs.max_videos }}"
+
+  en-secure-validation:
+    if: inputs.mode != 'dry-run' && inputs.language == 'en'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Validate EN OAuth or perform controlled upload
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_EN }}
+          AD_CTA: ${{ vars.AD_CTA_EN }}
+          AD_LINK: ${{ vars.AD_LINK_EN }}
+        run: >-
+          python scripts/run_ad_pipeline.py
+          --language en
+          --mode "${{ inputs.mode }}"
+          --max-videos "${{ inputs.max_videos }}"

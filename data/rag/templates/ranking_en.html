@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; }
+  body {
+    font-family: "Segoe UI", "Arial", sans-serif;
+    background: linear-gradient(160deg, #2b1763 0%, #7b2f8f 55%, #c0397a 100%);
+    color: #fff; display: flex; flex-direction: column;
+    align-items: center; padding: 52px 46px 38px;
+  }
+  .kicker { font-size: 28px; font-weight: bold; letter-spacing: 4px; opacity: .9;
+    text-transform: uppercase; }
+  .title { font-size: 64px; font-weight: 900; margin-top: 8px; line-height: 1.05;
+    text-align: center; text-shadow: 0 4px 18px rgba(0,0,0,.3); }
+  .date { font-size: 30px; font-weight: bold; margin-top: 8px; opacity: .95;
+    background: rgba(255,255,255,.16); border-radius: 999px; padding: 7px 26px; }
+  .list { width: 100%; margin-top: 22px; display: flex; flex-direction: column; gap: 9px; }
+  .item { display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,.10); border-radius: 18px; padding: 12px 20px; }
+  .item.top { background: rgba(255,255,255,.96); color: #2b1763; }
+  .rank { font-size: 30px; font-weight: 900; width: 96px; text-align: center;
+    flex: none; white-space: nowrap; }
+  .item.top .rank { color: #c0397a; }
+  .medal { font-size: 42px; width: 96px; text-align: center; flex: none; }
+  .sym { font-size: 34px; width: 46px; text-align: center; flex: none; opacity: .9; }
+  .nm { font-size: 31px; font-weight: 900; width: 186px; flex: none; }
+  .cm { font-size: 24px; line-height: 1.25; flex: 1; opacity: .96; }
+  .item.top .cm { opacity: 1; }
+  .combo { width: 100%; margin-top: 16px;
+    background: rgba(255,235,120,.95); color: #5a3d00; border-radius: 22px;
+    padding: 20px 30px; text-align: center; }
+  .combo .h { font-size: 28px; font-weight: 900; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 1px; }
+  .combo .b { font-size: 36px; font-weight: 900; }
+  .combo .s { font-size: 24px; margin-top: 6px; opacity: .85; }
+  .foot { font-size: 26px; opacity: .92; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="kicker">&#11088; Today's Luck</div>
+  <div class="title">12 Zodiac Ranking</div>
+  <div class="date">{{DATE}}</div>
+  <div class="list">{{ROWS}}</div>
+  <div class="combo">
+    <div class="h">&#128081; Today's Power Pair</div>
+    <div class="b">{{COMBO}}</div>
+    <div class="s">{{COMBO_SUB}}</div>
+  </div>
+  <div class="foot">What rank did you get? Tell us in the comments</div>
+</body>
+</html>
