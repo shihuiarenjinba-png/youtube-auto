@@ -127,3 +127,45 @@ until official JA and EN values pass validation.
   but all four official `AD_CTA_*` / `AD_LINK_*` values must be re-confirmed before
   any unlisted marketing test.
 - recurring schedules/public mode: intentionally disabled
+
+## Zernio temporary media transfer validation — 2026-11-18
+
+The `social-media-upload` mode proves only this boundary:
+
+`GitHub Actions -> one generated MP4 -> Zernio /media/presign -> presigned PUT`
+
+It has no post-creation implementation and does not call `/v1/posts`. YouTube
+secure jobs, the other market's media-upload job, social read-only jobs, and the
+general dry-run job are skipped for each lane-specific run.
+
+- Evidence hardening commit:
+  `86fe22de80cb24b8a11c53b6e463a6605d29a0d7`. It makes account health,
+  TikTok capacity, presign, PUT, one-video generation, and post-cleanup existence
+  checks explicit in the fail-closed result.
+- JP run `44313218261`: PASS at exact run HEAD
+  `86fe22de80cb24b8a11c53b6e463a6605d29a0d7`; all 15 safety tests passed;
+  account health 4/4 and TikTok capacity 2/2 passed; exactly one 743957-byte MP4
+  was generated (H.264, 1080x1920, 12.0 seconds, audio present). The same probe
+  MP4 was transferred once through each of the two JP credential scopes, so the
+  temporary-media upload count was 2. Both presign and presigned PUT operations
+  passed, the public host was `media.zernio.com`, and temporary runner media was
+  removed and verified absent.
+- US run `44313569027`: PASS at exact run HEAD
+  `86fe22de80cb24b8a11c53b6e463a6605d29a0d7`; all 15 safety tests passed;
+  account health 2/2 and TikTok capacity 1/1 passed; exactly one 676349-byte MP4
+  was generated (H.264, 1080x1920, 12.0 seconds, audio present). The MP4 was
+  transferred once through the US credential scope. Presign and presigned PUT
+  passed, the public host was `media.zernio.com`, and temporary runner media was
+  removed and verified absent.
+- Both runs reported `zernio_media_upload_performed=true`,
+  `social_post_created=false`, and `social_post_performed=false`.
+- Logs contained only the public host plus SHA-256 digests for the public URL and
+  storage key. No raw Zernio public URL or storage key was logged.
+- GitHub masking was active for all lane-specific API-key environment values.
+  Log review found no recognizable secret/API-key/private-key value, no posts
+  endpoint, and no YouTube credential. Workflow and configuration map JP and US
+  secrets independently with no cross-market fallback.
+- `GitHub Actions -> video generation -> Zernio temporary media storage`:
+  TECHNICAL PASS for JP and US.
+- Instagram/TikTok controlled post creation: HOLD. No post was created during
+  these runs, and controlled-post design/validation remains a separate next step.
