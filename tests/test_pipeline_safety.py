@@ -117,11 +117,17 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn("/posts", probe)
         self.assertIn('"social_post_created": False', probe)
         self.assertIn('"social_post_performed": False', probe)
+        self.assertIn('"generated_video_count": 1', probe)
+        self.assertIn('"temporary_media_removed": True', probe)
+        self.assertIn('"account_health_passed": True', probe)
+        self.assertIn('"tiktok_capacity_passed": True', probe)
 
     def test_zernio_probe_uses_presigned_media_upload_only(self):
         client = (ROOT / "core" / "actions_zernio.py").read_text(encoding="utf-8")
         self.assertIn('"/media/presign"', client)
         self.assertNotIn('"/posts"', client)
+        self.assertIn('"presign_succeeded": True', client)
+        self.assertIn('"presigned_put_succeeded": True', client)
 
 
 if __name__ == "__main__":

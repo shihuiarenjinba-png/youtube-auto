@@ -93,6 +93,8 @@ class ActionsZernioClient:
         return {
             "public_url": public_url,
             "storage_key": storage_key,
+            "presign_succeeded": True,
+            "presigned_put_succeeded": True,
             "expires_in": int(presigned.get("expiresIn") or 0),
             "bytes": path.stat().st_size,
         }
