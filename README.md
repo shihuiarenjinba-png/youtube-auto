@@ -6,7 +6,8 @@ GitHub Actions port of the proven local JA/EN YouTube card-video uploader.
 
 The repository is still in the validation phase:
 
-- manual `workflow_dispatch` only; schedules are not enabled
+- validation cron definitions are present; GitHub runs them only from the default branch
+- `workflow_dispatch` remains available, including the same scheduled-path gate
 - `public` is not an available workflow mode
 - dry-runs receive no OAuth secrets
 - JA and EN secure jobs receive only their own refresh token
@@ -37,9 +38,10 @@ Manual modes:
 - `oauth-check`: refresh OAuth and verify the exact lane channel; no generation/upload
 - `private`: controlled validation upload; marketing CTA/link variables are intentionally ignored and a validation-only notice is used
 - `unlisted`: controlled marketing-path upload; valid CTA and public HTTPS product URL are required
+- `scheduled-validation`: manually exercises the same timezone gate and private one-item jobs used by cron
 
-Public upload and schedules stay unavailable until both controlled uploads and a
-scheduled-path test pass.
+Scheduled jobs remain private validation only. Public upload stays unavailable,
+and the unlisted marketing path remains on hold until official CTA/URLs exist.
 
 ## Required GitHub Actions secrets
 
@@ -66,8 +68,9 @@ No JA-to-EN or EN-to-JA token fallback exists.
 - `AD_CTA_EN`
 - `AD_LINK_EN`
 
-These remain unset until the official CTA and URLs are confirmed. Dry-runs do
-not require them; upload modes fail closed without them.
+These remain unset until the official CTA and URLs are confirmed. Dry-run,
+OAuth-check, private validation, and scheduled private validation do not use
+them. The unlisted marketing path fails closed without valid values.
 
 ## Instagram and TikTok validation
 
@@ -105,16 +108,19 @@ python scripts/run_ad_pipeline.py --language en --mode dry-run --max-videos 1
 
 `CHROME_PATH` may be set to an explicit Chrome/Chromium executable.
 
-## Proposed schedules (not enabled)
+## Private validation schedules
 
 - JA: 05:00 Asia/Tokyo (`0 20 * * *` UTC on the previous UTC date)
 - EN: 05:00 America/New_York (`0 9 * * *` and `0 10 * * *` UTC candidates)
 
-New York alternates between UTC-4 and UTC-5. The final scheduled workflow will
-accept both UTC candidates and use a timezone-aware runtime gate so only the run
-whose New York local hour is 05:00 proceeds. GitHub cron may start later under
-load. These values are deliberately absent from the workflow until controlled
-uploads pass.
+New York alternates between UTC-4 and UTC-5. The scheduled workflow accepts both
+UTC candidates and uses `scripts/schedule_gate.py` so only the candidate matching
+05:00 New York time proceeds. The JA candidate similarly selects only the JA
+lane. Every selected scheduled validation runs fail-closed tests, uses lane-fixed
+OAuth/channel checks, and requests exactly one private upload. GitHub cron may
+start later under load. GitHub executes scheduled workflows from the default
+branch only; a feature branch can validate the identical path by dispatching
+`scheduled-validation` with the corresponding cron expression.
 
 ## Durability note
 

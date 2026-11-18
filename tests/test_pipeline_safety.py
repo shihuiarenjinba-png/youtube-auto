@@ -84,6 +84,29 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertTrue(should_run("en", "0 9 * * *", summer))
         self.assertFalse(should_run("en", "0 10 * * *", summer))
 
+    def test_schedule_gate_selects_only_the_correct_lane(self):
+        ja_time = datetime(2026, 11, 18, 20, tzinfo=timezone.utc)
+        en_winter_time = datetime(2026, 11, 18, 10, tzinfo=timezone.utc)
+        self.assertTrue(should_run("ja", "0 20 * * *", ja_time))
+        self.assertFalse(should_run("en", "0 20 * * *", ja_time))
+        self.assertTrue(should_run("en", "0 10 * * *", en_winter_time))
+        self.assertFalse(should_run("ja", "0 10 * * *", en_winter_time))
+
+    def test_scheduled_path_is_private_one_item_and_lane_fixed(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(
+            encoding="utf-8"
+        )
+        for cron in ('cron: "0 20 * * *"', 'cron: "0 9 * * *"', 'cron: "0 10 * * *"'):
+            self.assertIn(cron, workflow)
+        self.assertIn("python scripts/schedule_gate.py --language ja", workflow)
+        self.assertIn("python scripts/schedule_gate.py --language en", workflow)
+        self.assertIn("--language ja --mode private --max-videos 1", workflow)
+        self.assertIn("--language en --mode private --max-videos 1", workflow)
+        self.assertIn("secrets.YOUTUBE_REFRESH_TOKEN_JA", workflow)
+        self.assertIn("secrets.YOUTUBE_REFRESH_TOKEN_EN", workflow)
+        self.assertIn("Run fail-closed safety tests before scheduled validation upload", workflow)
+        self.assertNotIn("--mode public", workflow)
+
     def test_social_markets_and_accounts_never_overlap(self):
         config = json.loads((ROOT / "config" / "social_lanes.json").read_text(encoding="utf-8"))
         ja = config["languages"]["ja"]

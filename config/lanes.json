@@ -10,7 +10,7 @@
       "audio": "language-neutral proven BGM",
       "cta_env": "AD_CTA_JA",
       "link_env": "AD_LINK_JA",
-      "schedule": "DISABLED_UNTIL_CONTROLLED_UPLOAD_PASSES"
+      "schedule": "PRIVATE_SCHEDULED_PATH_VALIDATION_ONLY"
     },
     "en": {
       "language": "en",
@@ -22,7 +22,7 @@
       "audio": "language-neutral proven BGM",
       "cta_env": "AD_CTA_EN",
       "link_env": "AD_LINK_EN",
-      "schedule": "DISABLED_UNTIL_CONTROLLED_UPLOAD_PASSES"
+      "schedule": "PRIVATE_SCHEDULED_PATH_VALIDATION_ONLY"
     }
   }
 }

@@ -1,6 +1,10 @@
 name: YouTube Ad Pipeline - Validation
 
 on:
+  schedule:
+    - cron: "0 20 * * *"
+    - cron: "0 9 * * *"
+    - cron: "0 10 * * *"
   workflow_dispatch:
     inputs:
       language:
@@ -21,6 +25,7 @@ on:
           - social-check
           - social-dry-run
           - social-media-upload
+          - scheduled-validation
           - private
           - unlisted
       max_videos:
@@ -33,15 +38,152 @@ on:
           - "2"
           - "3"
           - "4"
+      schedule_cron:
+        description: "Manual scheduled-path validation only; ignored by real schedule events"
+        required: false
+        default: "0 20 * * *"
+        type: choice
+        options:
+          - "0 20 * * *"
+          - "0 9 * * *"
+          - "0 10 * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: youtube-ad-${{ inputs.language }}
+  group: youtube-ad-${{ github.event_name == 'schedule' && github.event.schedule || inputs.language }}
   cancel-in-progress: false
 
 jobs:
+  scheduled-gate:
+    if: github.event_name == 'schedule' || inputs.mode == 'scheduled-validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ja-selected: ${{ steps.ja-gate.outputs.selected }}
+      en-selected: ${{ steps.en-gate.outputs.selected }}
+      event-cron: ${{ steps.event.outputs.cron }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - id: event
+        name: Resolve schedule expression
+        env:
+          EVENT_CRON: ${{ github.event_name == 'schedule' && github.event.schedule || inputs.schedule_cron }}
+        run: echo "cron=$EVENT_CRON" >> "$GITHUB_OUTPUT"
+      - id: ja-gate
+        name: Evaluate JA 05:00 Asia/Tokyo gate
+        run: python scripts/schedule_gate.py --language ja --event-cron "${{ steps.event.outputs.cron }}"
+      - id: en-gate
+        name: Evaluate EN 05:00 America/New_York gate
+        run: python scripts/schedule_gate.py --language en --event-cron "${{ steps.event.outputs.cron }}"
+      - name: Fail closed on manual lane mismatch
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REQUESTED_LANGUAGE: ${{ inputs.language }}
+          JA_SELECTED: ${{ steps.ja-gate.outputs.selected }}
+          EN_SELECTED: ${{ steps.en-gate.outputs.selected }}
+        run: |
+          if [[ "$REQUESTED_LANGUAGE" == "ja" && "$JA_SELECTED" != "true" ]]; then
+            exit 1
+          fi
+          if [[ "$REQUESTED_LANGUAGE" == "en" && "$EN_SELECTED" != "true" ]]; then
+            exit 1
+          fi
+
+  ja-scheduled-validation:
+    needs: scheduled-gate
+    if: needs.scheduled-gate.outputs.ja-selected == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+      - name: Ensure system media dependencies
+        timeout-minutes: 5
+        run: |
+          need_apt=0
+          command -v ffmpeg >/dev/null || need_apt=1
+          command -v ffprobe >/dev/null || need_apt=1
+          fc-match "Noto Sans CJK JP" | grep -qi "Noto Sans CJK JP" || need_apt=1
+          if [[ "$need_apt" == "1" ]]; then
+            sudo timeout 240s apt-get -o Acquire::Retries=3 update
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 240s \
+              apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install Python dependencies
+        timeout-minutes: 5
+        run: >-
+          python -m pip install --disable-pip-version-check
+          --retries 5 --timeout 30 -r requirements.txt
+      - name: Run fail-closed safety tests before scheduled validation upload
+        run: python -m unittest discover -s tests -v
+      - name: Run one private JA scheduled-path validation upload
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_JA }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_JA }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_JA }}
+        run: python scripts/run_ad_pipeline.py --language ja --mode private --max-videos 1
+
+  en-scheduled-validation:
+    needs: scheduled-gate
+    if: needs.scheduled-gate.outputs.en-selected == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+      - name: Ensure system media dependencies
+        timeout-minutes: 5
+        run: |
+          need_apt=0
+          command -v ffmpeg >/dev/null || need_apt=1
+          command -v ffprobe >/dev/null || need_apt=1
+          fc-match "Noto Sans CJK JP" | grep -qi "Noto Sans CJK JP" || need_apt=1
+          if [[ "$need_apt" == "1" ]]; then
+            sudo timeout 240s apt-get -o Acquire::Retries=3 update
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 240s \
+              apt-get install --yes ffmpeg fonts-noto-cjk fonts-noto-color-emoji
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install Python dependencies
+        timeout-minutes: 5
+        run: >-
+          python -m pip install --disable-pip-version-check
+          --retries 5 --timeout 30 -r requirements.txt
+      - name: Run fail-closed safety tests before scheduled validation upload
+        run: python -m unittest discover -s tests -v
+      - name: Run one private EN scheduled-path validation upload
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_EN }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_EN }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_EN }}
+        run: python scripts/run_ad_pipeline.py --language en --mode private --max-videos 1
+
   dry-run:
     if: inputs.mode == 'dry-run' || inputs.mode == 'social-dry-run'
     runs-on: ubuntu-latest
@@ -85,7 +227,7 @@ jobs:
           --max-videos "${{ inputs.max_videos }}"
 
   ja-secure-validation:
-    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.mode != 'social-media-upload' && inputs.language == 'ja'
+    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.mode != 'social-media-upload' && inputs.mode != 'scheduled-validation' && inputs.language == 'ja'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -132,7 +274,7 @@ jobs:
           --max-videos "${{ inputs.max_videos }}"
 
   en-secure-validation:
-    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.mode != 'social-media-upload' && inputs.language == 'en'
+    if: inputs.mode != 'dry-run' && inputs.mode != 'social-check' && inputs.mode != 'social-dry-run' && inputs.mode != 'social-media-upload' && inputs.mode != 'scheduled-validation' && inputs.language == 'en'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
