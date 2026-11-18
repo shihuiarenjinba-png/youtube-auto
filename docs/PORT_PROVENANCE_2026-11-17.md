@@ -207,7 +207,10 @@ test suite before upload and uses a validation-only idempotency marker namespace
   value, and contained no opposite-lane OAuth secret name or channel ID.
 - Manual execution of the identical timezone-gated scheduled jobs: TECHNICAL PASS
   for JA and EN.
-- Actual `event=schedule` trigger: PENDING default-branch integration and the next
-  matching 05:00 window. GitHub does not run scheduled workflows from a feature
-  branch, so the manual run IDs above must not be represented as cron-triggered.
+- Default-branch activation: PASS. `main` was fast-forwarded to
+  `287797b8085b220ab5c91b4b0654001c4f48a384` with public mode absent and cron
+  jobs hard-coded to private one-item validation.
+- Actual `event=schedule` trigger: ARMED, awaiting the next matching 05:00 window.
+  No cron-triggered run existed immediately after activation, so the manual run
+  IDs above must not be represented as cron-triggered evidence.
 - Public posting, unlisted marketing posting, and social post creation remain HOLD.
