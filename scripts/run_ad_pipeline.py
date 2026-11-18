@@ -24,6 +24,7 @@ from core.card_video import build_card_video  # noqa: E402
 
 CONFIG_PATH = ROOT / "config" / "lanes.json"
 ALLOWED_MODES = ("dry-run", "oauth-check", "private", "unlisted")
+ALLOWED_MARKER_NAMESPACES = ("youtube-auto", "youtube-auto-scheduled-validation")
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +32,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--language", choices=("ja", "en"), required=True)
     parser.add_argument("--mode", choices=ALLOWED_MODES, default="dry-run")
     parser.add_argument("--max-videos", type=int, default=1)
+    parser.add_argument(
+        "--marker-namespace",
+        choices=ALLOWED_MARKER_NAMESPACES,
+        default="youtube-auto",
+    )
     return parser.parse_args()
 
 
@@ -154,7 +160,7 @@ def main() -> int:
         ]
     else:
         cta_lines = marketing_lines(require=args.mode == "unlisted")
-    markers = [f"[youtube-auto:{args.language}:{day.isoformat()}:{slot:02d}]"
+    markers = [f"[{args.marker_namespace}:{args.language}:{day.isoformat()}:{slot:02d}]"
                for slot in range(1, args.max_videos + 1)]
     existing = client.existing_markers(markers) if client else set()
 

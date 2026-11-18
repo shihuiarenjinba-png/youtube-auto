@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.run_ad_pipeline import ALLOWED_MODES, lane_card_check, marketing_lines
+from scripts.run_ad_pipeline import (
+    ALLOWED_MARKER_NAMESPACES,
+    ALLOWED_MODES,
+    lane_card_check,
+    marketing_lines,
+)
 from scripts.schedule_gate import selected_cron, should_run
 
 
@@ -102,6 +107,11 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("python scripts/schedule_gate.py --language en", workflow)
         self.assertIn("--language ja --mode private --max-videos 1", workflow)
         self.assertIn("--language en --mode private --max-videos 1", workflow)
+        self.assertEqual(
+            ALLOWED_MARKER_NAMESPACES,
+            ("youtube-auto", "youtube-auto-scheduled-validation"),
+        )
+        self.assertEqual(workflow.count("--marker-namespace youtube-auto-scheduled-validation"), 2)
         self.assertIn("secrets.YOUTUBE_REFRESH_TOKEN_JA", workflow)
         self.assertIn("secrets.YOUTUBE_REFRESH_TOKEN_EN", workflow)
         self.assertIn("Run fail-closed safety tests before scheduled validation upload", workflow)
