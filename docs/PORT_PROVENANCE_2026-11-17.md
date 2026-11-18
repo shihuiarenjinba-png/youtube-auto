@@ -169,3 +169,45 @@ general dry-run job are skipped for each lane-specific run.
   TECHNICAL PASS for JP and US.
 - Instagram/TikTok controlled post creation: HOLD. No post was created during
   these runs, and controlled-post design/validation remains a separate next step.
+
+## YouTube scheduled-path validation — 2026-11-18
+
+The validation workflow defines these UTC cron candidates while retaining
+`workflow_dispatch`:
+
+- JA 05:00 `Asia/Tokyo`: `0 20 * * *`
+- EN 05:00 `America/New_York`: `0 9 * * *` (EDT) and `0 10 * * *` (EST)
+
+`scripts/schedule_gate.py` evaluates all three candidates against the lane's IANA
+timezone. Tests cover JA selection, EN rejection at the JA cron, and both New York
+DST offsets. A selected scheduled job is hard-coded to `private`, one item, its
+own OAuth secrets, and its fixed channel identity. It runs the complete fail-closed
+test suite before upload and uses a validation-only idempotency marker namespace.
+
+- First manual JA same-path run `44319916674` at run HEAD `d89f8ef`: gate PASS,
+  JA selected and EN rejected, OAuth/channel PASS, cleanup PASS, and upload count
+  zero because the ordinary private marker for that date already existed. This
+  confirmed existing idempotency but did not satisfy the one-video evidence gate.
+- Scheduled validation marker isolation was added in
+  `bcb3b1c000b83a3fd9a5b9933e3225d622c53bac` without changing the ordinary
+  private/production marker namespace.
+- JA same-path retry `44320456709` at exact run HEAD
+  `bcb3b1c000b83a3fd9a5b9933e3225d622c53bac`: PASS. Gate selected JA only; all
+  17 safety tests passed; one H.264 1080x1920, 12-second video with audio was
+  generated; video `yxBamSaM9yE` was uploaded to channel
+  `UCCuMoJvZvdeUTdLaZR5tzPw` as private; processing `succeeded`, upload
+  `processed`, and temporary media cleanup passed.
+- EN winter same-path run `44321228836` at exact run HEAD
+  `bcb3b1c000b83a3fd9a5b9933e3225d622c53bac`: PASS. Gate rejected JA and selected
+  EN for `0 10 * * *`; all 17 safety tests passed; one H.264 1080x1920, 12-second
+  video with audio was generated; video `zTO5jBXTqSc` was uploaded to channel
+  `UCeyLvckqiM7eYMgKOAh_OkA` as private; processing `succeeded`, upload
+  `processed`, and temporary media cleanup passed.
+- Both logs had GitHub secret masking active, contained no recognizable secret
+  value, and contained no opposite-lane OAuth secret name or channel ID.
+- Manual execution of the identical timezone-gated scheduled jobs: TECHNICAL PASS
+  for JA and EN.
+- Actual `event=schedule` trigger: PENDING default-branch integration and the next
+  matching 05:00 window. GitHub does not run scheduled workflows from a feature
+  branch, so the manual run IDs above must not be represented as cron-triggered.
+- Public posting, unlisted marketing posting, and social post creation remain HOLD.
