@@ -1,5 +1,11 @@
 # Code Owner Handoff — YouTube Auto Production Pipeline
 
+> **Safety correction — 2026-11-20:** The zodiac implementation copied after
+> this handoff is not the advertising source. Do not use zodiac channels,
+> content, OAuth credentials, or upload paths for advertising. Current rules
+> and verified advertising candidates are documented in
+> `ADVERTISING_REMAP_AUDIT_2026-11-20.md`.
+
 Date: 2026-11-17 JST  
 Repository: `shihuiarenjinba-png/youtube-auto`  
 Default branch: `main`

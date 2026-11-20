@@ -1,5 +1,14 @@
 # Production source provenance — 2026-11-17
 
+> **CORRECTION — 2026-11-20:** This document originally treated the
+> `auto-shorts-studio` zodiac uploader and its two zodiac channels as an
+> advertising source. That classification was wrong. All upload/schedule
+> evidence below is historical evidence of the mistaken zodiac route and is
+> explicitly **not** an advertising PASS. The two zodiac channels are now
+> `DENY_ALL_WRITES`; their legacy credentials must never be used as advertising
+> fallback. The authoritative advertising audit and current HOLD state are in
+> `ADVERTISING_REMAP_AUDIT_2026-11-20.md`.
+
 ## Source selected
 
 The proven source is the live Windows checkout:

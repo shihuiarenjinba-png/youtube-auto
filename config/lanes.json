@@ -1,8 +1,11 @@
 {
+  "namespace": "zodiac-quarantine",
+  "write_policy": "DENY_ALL_WRITES",
+  "status": "LEGACY_REFERENCE_ONLY_NOT_ADVERTISING",
   "languages": {
     "ja": {
       "language": "ja",
-      "label": "Japanese production lane (proven route: main)",
+      "label": "QUARANTINED Japanese zodiac lane (read-only reference)",
       "expected_channel_id": "UCCuMoJvZvdeUTdLaZR5tzPw",
       "timezone": "Asia/Tokyo",
       "local_post_time": "05:00",
@@ -10,11 +13,11 @@
       "audio": "language-neutral proven BGM",
       "cta_env": "AD_CTA_JA",
       "link_env": "AD_LINK_JA",
-      "schedule": "PRIVATE_SCHEDULED_PATH_VALIDATION_ONLY"
+      "schedule": "DISABLED"
     },
     "en": {
       "language": "en",
-      "label": "English production lane (proven route: english)",
+      "label": "QUARANTINED English zodiac lane (read-only reference)",
       "expected_channel_id": "UCeyLvckqiM7eYMgKOAh_OkA",
       "timezone": "America/New_York",
       "local_post_time": "05:00",
@@ -22,7 +25,7 @@
       "audio": "language-neutral proven BGM",
       "cta_env": "AD_CTA_EN",
       "link_env": "AD_LINK_EN",
-      "schedule": "PRIVATE_SCHEDULED_PATH_VALIDATION_ONLY"
+      "schedule": "DISABLED"
     }
   }
 }

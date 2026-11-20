@@ -1,0 +1,43 @@
+{
+  "zodiac": {
+    "write_policy": "DENY_ALL_WRITES",
+    "audit_only": true,
+    "ja": {
+      "channel_id": "UCCuMoJvZvdeUTdLaZR5tzPw",
+      "legacy_secret_namespace": "YOUTUBE_*_JA"
+    },
+    "en": {
+      "channel_id": "UCeyLvckqiM7eYMgKOAh_OkA",
+      "legacy_secret_namespace": "YOUTUBE_*_EN"
+    }
+  },
+  "advertising": {
+    "fallback_policy": "DENY",
+    "jp": {
+      "market": "JP",
+      "language": "ja",
+      "local_account_number": "3",
+      "local_token_filename": "token_3.json",
+      "expected_channel_id": "UC4n0nR7IBwN1KKr9T32RP_w",
+      "identity_status": "LOCAL_READ_ONLY_CONFIRMED",
+      "secret_names": {
+        "client_id": "AD_YOUTUBE_CLIENT_ID_JP",
+        "client_secret": "AD_YOUTUBE_CLIENT_SECRET_JP",
+        "refresh_token": "AD_YOUTUBE_REFRESH_TOKEN_JP"
+      }
+    },
+    "us": {
+      "market": "US",
+      "language": "en",
+      "local_account_number": "2",
+      "local_token_filename": "token_2.json",
+      "expected_channel_id": "",
+      "identity_status": "HOLD_US_AD_ACCOUNT_NOT_CONFIRMED",
+      "secret_names": {
+        "client_id": "AD_YOUTUBE_CLIENT_ID_US",
+        "client_secret": "AD_YOUTUBE_CLIENT_SECRET_US",
+        "refresh_token": "AD_YOUTUBE_REFRESH_TOKEN_US"
+      }
+    }
+  }
+}
