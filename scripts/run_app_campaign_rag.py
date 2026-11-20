@@ -52,6 +52,8 @@ def main() -> int:
                 "hold_reasons": grounded.get("hold_reasons") or [],
                 "review_path": str(args.output),
                 "generated_video_count": 0,
+                "media_upload_performed": False,
+                "social_post_created": False,
                 "social_post_performed": False,
                 "youtube_write_performed": False,
                 "zodiac_write_performed": False,

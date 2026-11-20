@@ -200,6 +200,18 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn("/v1/posts", workflow)
         self.assertNotIn("/media/presign", workflow)
         self.assertIn("app-campaign-rag-dry-run", workflow)
+        self.assertIn('test ! -e "$RUNNER_TEMP/daymark-ai-jp-review.json"', workflow)
+
+    def test_app_campaign_rag_summary_reports_all_write_surfaces_false(self):
+        runner = (ROOT / "scripts" / "run_app_campaign_rag.py").read_text(encoding="utf-8")
+        for field in (
+            '"media_upload_performed": False',
+            '"social_post_created": False',
+            '"social_post_performed": False',
+            '"youtube_write_performed": False',
+            '"zodiac_write_performed": False',
+        ):
+            self.assertIn(field, runner)
 
     def test_rag_runner_reports_hold_without_fallback(self):
         runner = (ROOT / "scripts" / "run_advertising_rag.py").read_text(encoding="utf-8")

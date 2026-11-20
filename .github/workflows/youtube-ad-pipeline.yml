@@ -137,7 +137,9 @@ jobs:
           --output "$RUNNER_TEMP/daymark-ai-jp-review.json"
       - name: Remove temporary Campaign review
         if: always()
-        run: rm -f "$RUNNER_TEMP/daymark-ai-jp-review.json"
+        run: |
+          rm -f "$RUNNER_TEMP/daymark-ai-jp-review.json"
+          test ! -e "$RUNNER_TEMP/daymark-ai-jp-review.json"
 
   social-jp-read-only:
     needs: safety-tests
