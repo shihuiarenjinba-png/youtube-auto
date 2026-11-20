@@ -7,9 +7,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import imageio_ffmpeg
-from PIL import Image, ImageDraw, ImageFont
-
 from .bgm_picker import pick
 from .card_video import build_card_video
 
@@ -26,7 +23,9 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _font(size: int, *, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+def _font(size: int, *, bold: bool = False) -> Any:
+    from PIL import ImageFont
+
     windows = [
         "C:/Windows/Fonts/YuGothB.ttc" if bold else "C:/Windows/Fonts/YuGothM.ttc",
         "C:/Windows/Fonts/meiryob.ttc" if bold else "C:/Windows/Fonts/meiryo.ttc",
@@ -43,7 +42,7 @@ def _font(size: int, *, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFon
     return ImageFont.load_default()
 
 
-def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, width: int) -> list[str]:
+def _wrap(draw: Any, text: str, font: Any, width: int) -> list[str]:
     lines: list[str] = []
     for paragraph in str(text).splitlines() or [""]:
         current = ""
@@ -60,10 +59,10 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, width
 
 
 def _draw_wrapped(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     xy: tuple[int, int],
     text: str,
-    font: ImageFont.ImageFont,
+    font: Any,
     fill: tuple[int, int, int],
     width: int,
     spacing: int = 12,
@@ -76,7 +75,9 @@ def _draw_wrapped(
     return y
 
 
-def _paste_screenshot(canvas: Image.Image, screenshot_path: Path, box: tuple[int, int, int, int]) -> None:
+def _paste_screenshot(canvas: Any, screenshot_path: Path, box: tuple[int, int, int, int]) -> None:
+    from PIL import Image
+
     left, top, right, bottom = box
     target_w, target_h = right - left, bottom - top
     with Image.open(screenshot_path) as source:
@@ -112,6 +113,8 @@ def render_review_cards(
     root: Path,
     output_dir: Path,
 ) -> list[Path]:
+    from PIL import Image, ImageDraw
+
     if content.get("campaign_id") != campaign.get("campaign_id"):
         raise AppVideoHold("HOLD_CAMPAIGN_CONTENT_ID_MISMATCH")
     if len(str(content.get("evidence_hash") or "")) != 64:
@@ -152,6 +155,8 @@ def render_review_cards(
 
 
 def probe_video(path: Path) -> dict[str, Any]:
+    import imageio_ffmpeg
+
     try:
         reader = imageio_ffmpeg.read_frames(str(path), pix_fmt="rgb24")
         metadata = next(reader)
