@@ -63,4 +63,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Exception as exc:  # fail closed without echoing OAuth response details
+        value = str(exc)
+        status = value if value.startswith("HOLD_") else "HOLD_OAUTH_READ_ONLY_CHECK_FAILED"
+        print(json.dumps({
+            "status": status,
+            "write_performed": False,
+            "token_persisted": False,
+            "fallback_performed": False,
+        }, ensure_ascii=False, indent=2))
+        raise SystemExit(2) from None

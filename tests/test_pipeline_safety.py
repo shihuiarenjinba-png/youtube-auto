@@ -65,6 +65,12 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn(".upload(", source)
         self.assertIn("channels().list", source)
 
+    def test_identity_runner_redacts_unexpected_oauth_errors(self):
+        source = (ROOT / "scripts" / "audit_advertising_youtube.py").read_text(encoding="utf-8")
+        self.assertIn("HOLD_OAUTH_READ_ONLY_CHECK_FAILED", source)
+        self.assertIn('"fallback_performed": False', source)
+        self.assertIn("raise SystemExit(2) from None", source)
+
     def test_legacy_pipeline_entry_is_fail_closed(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts" / "run_ad_pipeline.py")], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)

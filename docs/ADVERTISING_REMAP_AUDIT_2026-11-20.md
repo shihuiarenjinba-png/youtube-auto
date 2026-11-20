@@ -69,6 +69,11 @@ HOLD. The active workflow uses health/capacity GET requests only.
 ## Current phase
 
 - Phase 1 local advertising identity: JP PASS, US HOLD.
+- GitHub fail-closed proof: run `44705623403`, exact HEAD
+  `1cc00ad6555a8b1d20a3c79b74cb45ca30c7e1e4`. All safety tests passed; the
+  JP advertising identity job then stopped on missing
+  `AD_YOUTUBE_REFRESH_TOKEN_JP`. No legacy-secret fallback, generation, upload,
+  social action, or opposite-market job occurred.
 - Phase 2 RAG dry-run implementation: implemented. The only registered Campaign
   (`General Data Analyzer`, JP) was attempted twice against its stored official
   HTTPS URL and returned HTTP 503 both times. Result:
