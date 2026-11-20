@@ -137,11 +137,37 @@ class PublicHttpsFetcher:
                         raise RagHold("HOLD_SOURCE_TOO_LARGE")
                     chunks.append(chunk)
                 body = b"".join(chunks)
-                encoding = response.encoding or "utf-8"
-                return current, body, body.decode(encoding, errors="replace")
+                try:
+                    apparent_encoding = requests.models.chardet.detect(body).get("encoding")
+                except (AttributeError, TypeError):
+                    apparent_encoding = None
+                html = self._decode_html(
+                    body,
+                    content_type,
+                    apparent_encoding,
+                )
+                return current, body, html
             finally:
                 response.close()
         raise RagHold("HOLD_SOURCE_REDIRECT_LIMIT")
+
+    @staticmethod
+    def _decode_html(body: bytes, content_type: str, apparent_encoding: str | None) -> str:
+        if body.startswith(b"\xef\xbb\xbf"):
+            return body.decode("utf-8-sig", errors="replace")
+        header_match = re.search(r"charset\s*=\s*['\"]?([^;\s'\"]+)", content_type)
+        meta_match = re.search(
+            br"<meta[^>]+charset\s*=\s*['\"]?\s*([A-Za-z0-9._-]+)",
+            body[:16384],
+            re.IGNORECASE,
+        )
+        encoding = (
+            (header_match.group(1) if header_match else "")
+            or (meta_match.group(1).decode("ascii") if meta_match else "")
+            or apparent_encoding
+            or "utf-8"
+        )
+        return body.decode(encoding, errors="replace")
 
 
 class GroundedExtractor:

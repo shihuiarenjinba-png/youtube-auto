@@ -20,10 +20,16 @@ def main() -> int:
 
     config = json.loads((ROOT / "config" / "social_lanes.json").read_text(encoding="utf-8"))
     lane = config["languages"][args.language]
+    if config.get("namespace") != "advertising.social" or config.get("fallback_policy") != "DENY":
+        raise RuntimeError("Social advertising namespace/fallback policy is invalid")
+    if lane.get("purpose") != "advertising":
+        raise RuntimeError("Social lane purpose is not advertising")
     results: list[dict] = []
     errors: list[dict] = []
     for platform in ("instagram", "tiktok"):
         for entry in lane[platform]:
+            if entry.get("purpose") != "advertising":
+                raise RuntimeError("Zernio account purpose is not advertising")
             account_id = str(entry["account_id"])
             credential_env = str(entry["credential_env"])
             try:

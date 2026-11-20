@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import sys
 import unittest
@@ -9,10 +10,14 @@ from unittest.mock import patch
 
 from core.advertising_rag import (
     GroundedExtractor,
+    PublicHttpsFetcher,
     RagHold,
     generate_grounded_content,
     validate_public_https,
 )
+from core.app_campaigns import build_grounded_dataset, generate_app_ad_content, load_campaign
+from core.app_ad_video import AppVideoHold, verify_screenshots
+from core.social_posting_policy import content_fingerprint, choose_round_robin, validate_preflight
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,6 +90,11 @@ class PipelineSafetyTests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(RagHold):
                 validate_public_https(url)
 
+    def test_html_meta_charset_prevents_japanese_mojibake(self):
+        body = '<meta charset="utf-8"><title>日記と習慣</title>'.encode("utf-8")
+        decoded = PublicHttpsFetcher._decode_html(body, "text/html", "ISO-8859-1")
+        self.assertIn("日記と習慣", decoded)
+
     @patch("core.advertising_rag.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 443))])
     def test_private_ip_resolution_fails_closed(self, _mock):
         with self.assertRaises(RagHold):
@@ -121,12 +131,75 @@ class PipelineSafetyTests(unittest.TestCase):
         ja_ids = {row["account_id"] for platform in ("instagram", "tiktok") for row in ja[platform]}
         en_ids = {row["account_id"] for platform in ("instagram", "tiktok") for row in en[platform]}
         self.assertTrue(ja_ids.isdisjoint(en_ids))
+        self.assertEqual(config["namespace"], "advertising.social")
+        self.assertEqual(config["fallback_policy"], "DENY")
+        for lane in (ja, en):
+            self.assertEqual(lane["purpose"], "advertising")
+            for platform in ("instagram", "tiktok"):
+                self.assertTrue(all(row["purpose"] == "advertising" for row in lane[platform]))
+
+    @patch("core.advertising_rag.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))])
+    def test_daymark_campaign_dataset_is_grounded_but_not_post_eligible(self, _mock):
+        campaign = load_campaign(ROOT / "data" / "app_campaigns" / "daymark-ai-jp.json")
+
+        class FakeFetcher:
+            def fetch(self, url):
+                html = '<html><head><meta charset="utf-8"><title>Daymark AI</title></head><body><main><h1>Daymark AI</h1><p>日記と習慣をWindows PC内に記録します。</p><p>ローカルAI補助は任意です。</p></main></body></html>'
+                return url, html.encode("utf-8"), html
+
+        grounded = build_grounded_dataset(campaign, fetcher=FakeFetcher())
+        content = generate_app_ad_content(grounded)
+        self.assertEqual(grounded["grounding_status"], "PASS")
+        self.assertFalse(content["posting_eligible"])
+        self.assertIn("HOLD_STORE_NOT_PUBLISHED", content["hold_reasons"])
+        self.assertEqual(content["app_id"], "OkinawaDesktopTools.DaymarkAI")
+        self.assertEqual(len(content["source_hashes"]), 3)
+
+    def test_daymark_screenshot_hashes_match_dataset(self):
+        campaign = json.loads((ROOT / "data" / "app_campaigns" / "daymark-ai-jp.json").read_text(encoding="utf-8"))
+        verified = verify_screenshots(campaign, ROOT)
+        self.assertEqual(len(verified), 5)
+
+    def test_screenshot_hash_mismatch_fails_closed(self):
+        campaign = json.loads((ROOT / "data" / "app_campaigns" / "daymark-ai-jp.json").read_text(encoding="utf-8"))
+        campaign["screenshots"][0]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(AppVideoHold, "HOLD_SCREENSHOT_HASH_MISMATCH"):
+            verify_screenshots(campaign, ROOT)
+
+    def test_local_video_runner_has_no_external_write_clients(self):
+        source = (ROOT / "scripts" / "generate_app_ad_video.py").read_text(encoding="utf-8")
+        self.assertNotIn("requests.post", source)
+        self.assertNotIn("/v1/posts", source)
+        self.assertNotIn("/media/presign", source)
+        self.assertNotIn("videos().insert", source)
+        self.assertNotIn("load_campaign(", source)
+        self.assertIn("HOLD_REVIEW_DATASET_MISMATCH", source)
+
+    def test_social_fingerprint_and_round_robin_are_deterministic(self):
+        values = dict(campaign_id="c1", source_hash="s1", video_hash="v1", platform="instagram", account_id="a1")
+        self.assertEqual(content_fingerprint(**values), content_fingerprint(**values))
+        selected = choose_round_robin(
+            [{"account_id": "a2", "purpose": "advertising"}, {"account_id": "a1", "purpose": "advertising"}],
+            [],
+        )
+        self.assertEqual(selected["account_id"], "a1")
+
+    def test_social_preflight_blocks_draft_campaign(self):
+        from datetime import datetime
+        with self.assertRaisesRegex(ValueError, "HOLD_CAMPAIGN_NOT_ACTIVE"):
+            validate_preflight(
+                campaign={"status": "DRAFT", "official_url": "https://example.com", "source_urls": ["https://example.com"], "cta_url": "https://example.com", "grounding_status": "PASS", "market": "JP"},
+                account={"purpose": "advertising", "market": "JP", "platform": "instagram"},
+                platform="instagram", media_valid=True, duplicate_found=False, capacity_ok=True,
+                posts_today=0, last_posted_at=None, now=datetime(2026, 11, 20),
+            )
 
     def test_zernio_workflow_is_read_only(self):
         workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
         self.assertIn("scripts/check_social_accounts.py", workflow)
         self.assertNotIn("/v1/posts", workflow)
         self.assertNotIn("/media/presign", workflow)
+        self.assertIn("app-campaign-rag-dry-run", workflow)
 
     def test_rag_runner_reports_hold_without_fallback(self):
         runner = (ROOT / "scripts" / "run_advertising_rag.py").read_text(encoding="utf-8")

@@ -16,6 +16,7 @@ on:
         options:
           - advertising-oauth-check
           - rag-dry-run
+          - app-campaign-rag-dry-run
           - social-check
       campaign_id:
         description: "Required only for rag-dry-run"
@@ -115,6 +116,28 @@ jobs:
           --market "$MARKET"
           --campaign-id "$CAMPAIGN_ID"
           --source-url "$SOURCE_URL"
+
+  app-campaign-rag-dry-run:
+    needs: safety-tests
+    if: inputs.mode == 'app-campaign-rag-dry-run' && inputs.market == 'jp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Build grounded Daymark AI Campaign review without posting
+        run: >-
+          python scripts/run_app_campaign_rag.py
+          --dataset data/app_campaigns/daymark-ai-jp.json
+          --output "$RUNNER_TEMP/daymark-ai-jp-review.json"
+      - name: Remove temporary Campaign review
+        if: always()
+        run: rm -f "$RUNNER_TEMP/daymark-ai-jp-review.json"
 
   social-jp-read-only:
     needs: safety-tests

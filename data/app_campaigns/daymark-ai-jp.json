@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "campaign_id": "daymark-ai-jp-20261120",
+  "app_id": "OkinawaDesktopTools.DaymarkAI",
+  "product_name": "Daymark AI",
+  "status": "DRAFT",
+  "hold_reasons": [
+    "HOLD_STORE_NOT_PUBLISHED",
+    "HOLD_PRICE_NOT_CONFIRMED"
+  ],
+  "market": "JP",
+  "language": "ja",
+  "official_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
+  "store_url": "",
+  "product_page_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
+  "source_urls": [
+    "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
+    "https://daymark-ai-help.bronzekoi37.chatgpt.site/privacy",
+    "https://daymark-ai-help.bronzekoi37.chatgpt.site/support"
+  ],
+  "source_hashes": [
+    "5306088d9a22cdd17fb26b4f185758387d4b2e2eaf1a93a6678c0a8c0d17f2e2",
+    "a0c62cd3c072c7c750b53bb92ca70e94046f8363bb4b46122e37c41e3a6f49a9",
+    "7b04b02aa8983f266477b5593a943d738cf717467d5364bba7c44fb62048b427"
+  ],
+  "description": "日記、体調、生活習慣を自分のWindows PCに記録。過去の日記検索と任意のローカルAI補助に対応します。",
+  "features": [
+    "昨日・今日・任意の日付の日記",
+    "起床・就寝、体調、体調メモ、本文の自動保存",
+    "月間カレンダー、本文・日付検索、個別削除",
+    "CSV出力、JSONバックアップ・復元",
+    "任意のローカルOllamaによる文章補助と日記への質問"
+  ],
+  "benefits": [],
+  "use_cases": [
+    "日記、習慣、カレンダー、検索、バックアップはAIなしで利用できます。"
+  ],
+  "price": null,
+  "screenshots": [
+    {"path": "assets/advertising/daymark-ai/01-diary-entry.png", "sha256": "08b7cece062adf20597143efaca2541ef74a615e05659aa7d8bf70d32f44db13"},
+    {"path": "assets/advertising/daymark-ai/02-habit-checklist.png", "sha256": "84aff59adc5a4fbd2b98cb2e6425aecf019d87f81e23b1635c0a37a4e80b175e"},
+    {"path": "assets/advertising/daymark-ai/03-calendar-history.png", "sha256": "643395b43adfb4dc1f4ad39271fefc10ecdb6417b1aafe57ac42cc0ef4dac091"},
+    {"path": "assets/advertising/daymark-ai/04-diary-recall.png", "sha256": "d258437203d74f56504cc7ec208042b5e8e5806efd9c93a67216e376d9572f5d"},
+    {"path": "assets/advertising/daymark-ai/05-ai-model-selection.png", "sha256": "5da17839530f6e7d1bfc07b7f813bc0de6a1815a0ef5aee327e2e27cf9dbca5f"}
+  ],
+  "supported_languages": ["ja", "en"],
+  "system_requirements": [
+    "Windows 10またはWindows 11、x64",
+    "Microsoft Edge WebView2 Runtime"
+  ],
+  "privacy_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/privacy",
+  "help_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/support",
+  "version": "1.0.4.0",
+  "release_notes": [],
+  "cta_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
+  "local_evidence": [
+    {
+      "source_locator": "local://daymark-ai/store/product.json",
+      "sha256": "2a2b8a8437e81aa942c6689df5ae44ba5a05846917adad61ef3dbfec6870bbd8",
+      "snippets": ["Daymark AI", "OkinawaDesktopTools.DaymarkAI", "1.0.4.0"]
+    },
+    {
+      "source_locator": "local://daymark-ai/docs/store/DAYMARK_STORE_LISTING.md",
+      "sha256": "2186c10a8b1353639fa0093cba80ed51276b4964444591a8d90775e76f3b09aa",
+      "snippets": [
+        "日記、体調、生活習慣を自分のWindows PCに記録。過去の日記検索と任意のローカルAI補助に対応します。",
+        "昨日・今日・任意の日付の日記",
+        "起床・就寝、体調、体調メモ、本文の自動保存",
+        "月間カレンダー、本文・日付検索、個別削除",
+        "CSV出力、JSONバックアップ・復元",
+        "任意のローカルOllamaによる文章補助と日記への質問",
+        "日記、習慣、カレンダー、検索、バックアップはAIなしで利用できます。",
+        "Windows 10またはWindows 11、x64",
+        "Microsoft Edge WebView2 Runtime"
+      ]
+    }
+  ],
+  "rotation": {
+    "last_posted_at": null,
+    "platform": null,
+    "account_id": null,
+    "source_hash": null,
+    "video_hash": null
+  }
+}
