@@ -140,6 +140,19 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
     product = str(dataset["product_name"])
     description = str(dataset.get("description") or "")
     cta_url = str(dataset.get("cta_url") or "")
+    availability_notice = ""
+    if dataset.get("limited_availability"):
+        availability_notice = str(
+            dataset.get("availability_notice_ja" if dataset.get("language") == "ja" else "availability_notice_en")
+            or "提供数に上限があります。"
+        ).strip()
+
+    caption_lines = [description, *features[:3]]
+    if availability_notice:
+        caption_lines.append(availability_notice)
+    if cta_url:
+        caption_lines.append(cta_url)
+
     return {
         "campaign_id": dataset["campaign_id"],
         "app_id": dataset["app_id"],
@@ -153,7 +166,9 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         "summary": description,
         "key_features": features[:3],
         "video_script": [product, description, *features[:3]],
-        "caption": "\n".join([description, *features[:3], cta_url]),
+        "caption": "\n".join(caption_lines),
+        "limited_availability": bool(dataset.get("limited_availability")),
+        "availability_notice": availability_notice,
         "hashtags": ["#PR", "#Windows", "#アプリ"],
         "cta_url": cta_url,
         "posting_eligible": bool(dataset["posting_eligible"]),
