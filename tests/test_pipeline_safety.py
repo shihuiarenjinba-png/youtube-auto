@@ -137,9 +137,11 @@ class PipelineSafetyTests(unittest.TestCase):
             self.assertEqual(lane["purpose"], "advertising")
             for platform in ("instagram", "tiktok"):
                 self.assertTrue(all(row["purpose"] == "advertising" for row in lane[platform]))
+                self.assertTrue(all(row["market"] == lane["market"] for row in lane[platform]))
+                self.assertTrue(all(row["platform"] == platform for row in lane[platform]))
 
     @patch("core.advertising_rag.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))])
-    def test_daymark_campaign_dataset_is_grounded_but_not_post_eligible(self, _mock):
+    def test_daymark_campaign_dataset_is_grounded_and_post_eligible(self, _mock):
         campaign = load_campaign(ROOT / "data" / "app_campaigns" / "daymark-ai-jp.json")
 
         class FakeFetcher:
@@ -150,8 +152,10 @@ class PipelineSafetyTests(unittest.TestCase):
         grounded = build_grounded_dataset(campaign, fetcher=FakeFetcher())
         content = generate_app_ad_content(grounded)
         self.assertEqual(grounded["grounding_status"], "PASS")
-        self.assertFalse(content["posting_eligible"])
-        self.assertIn("HOLD_STORE_NOT_PUBLISHED", content["hold_reasons"])
+        self.assertTrue(content["posting_eligible"])
+        self.assertEqual(content["hold_reasons"], [])
+        self.assertTrue(campaign["store_url"].startswith("https://apps.microsoft.com/"))
+        self.assertEqual(content["cta_url"], campaign["store_url"])
         self.assertEqual(content["app_id"], "OkinawaDesktopTools.DaymarkAI")
         self.assertEqual(len(content["source_hashes"]), 3)
 
@@ -193,6 +197,16 @@ class PipelineSafetyTests(unittest.TestCase):
                 platform="instagram", media_valid=True, duplicate_found=False, capacity_ok=True,
                 posts_today=0, last_posted_at=None, now=datetime(2026, 11, 20),
             )
+
+
+    def test_phase_b_media_transfer_has_no_social_post_or_youtube_write(self):
+        source = (ROOT / "scripts" / "transfer_app_campaign_media.py").read_text(encoding="utf-8")
+        self.assertIn("upload_temp_media", source)
+        self.assertNotIn("/v1/posts", source)
+        self.assertNotIn("videos().insert", source)
+        self.assertIn('"social_post_created": False', source)
+        self.assertIn('"youtube_write_performed": False', source)
+        self.assertIn('"zodiac_write_performed": False', source)
 
     def test_zernio_workflow_is_read_only(self):
         workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
