@@ -7,6 +7,7 @@ on:
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
+      - test-triggers/phase-c-tiktok.txt
   workflow_dispatch:
     inputs:
       market:
@@ -239,6 +240,37 @@ jobs:
           --dataset data/app_campaigns/daymark-ai-jp.json
           --platform instagram
           --account-id 6a9799d277555aae01bd18c1
+      - name: Assert no retained controlled-post media
+        if: always()
+        run: |
+          test ! -d "$RUNNER_TEMP/daymark-phase-c-instagram"
+
+  phase-c-daymark-tiktok-controlled-post:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-c-tiktok]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install controlled-post dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Post one grounded Daymark test to one JP TikTok account
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/post_app_campaign_instagram_test.py
+          --dataset data/app_campaigns/daymark-ai-jp.json
+          --platform tiktok
+          --account-id 6a97712377555aae01bbe410
       - name: Assert no retained controlled-post media
         if: always()
         run: |
