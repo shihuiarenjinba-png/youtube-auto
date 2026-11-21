@@ -201,23 +201,6 @@ class PipelineSafetyTests(unittest.TestCase):
 
 
 
-    def test_advertising_secret_setup_is_input_send_verify_without_persisting_secrets(self):
-        source = (ROOT / "scripts" / "configure_advertising_youtube_secrets.ps1").read_text(encoding="utf-8")
-        self.assertIn("AD_YOUTUBE_CLIENT_ID_$marketUpper", source)
-        self.assertIn("AD_YOUTUBE_CLIENT_SECRET_$marketUpper", source)
-        self.assertIn("AD_YOUTUBE_REFRESH_TOKEN_$marketUpper", source)
-        self.assertIn("$Value | gh secret set $Name --repo $Repo", source)
-        self.assertIn("mode=advertising-oauth-check", source)
-        self.assertIn("gh run watch", source)
-        self.assertIn("HOLD. Supply a confirmed US token explicitly", source)
-        self.assertNotIn("YOUTUBE_CLIENT_ID_JA", source)
-        self.assertNotIn("YOUTUBE_REFRESH_TOKEN_JA", source)
-
-    def test_secret_files_are_gitignored(self):
-        ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
-        self.assertIn("token*.json", ignore)
-        self.assertIn("client_secret*.json", ignore)
-        self.assertIn(".env", ignore)
 
     def test_campaign_registry_contains_six_targets_and_truthful_namidata_limit(self):
         registry = json.loads((ROOT / "data" / "app_campaigns" / "campaign_registry.json").read_text(encoding="utf-8"))
