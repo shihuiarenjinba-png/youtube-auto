@@ -58,7 +58,11 @@ def validate_preflight(
         "HOLD_OFFICIAL_URL_MISSING": bool(campaign.get("official_url")),
         "HOLD_GROUNDING_NOT_PASSED": campaign.get("grounding_status") == "PASS",
         "HOLD_CTA_URL_MISMATCH": bool(campaign.get("cta_url"))
-        and campaign.get("cta_url") in {campaign.get("official_url"), *(campaign.get("source_urls") or [])},
+        and campaign.get("cta_url") in {
+            campaign.get("official_url"),
+            campaign.get("store_url"),
+            *(campaign.get("source_urls") or []),
+        },
         "HOLD_ACCOUNT_NOT_ADVERTISING": account.get("purpose") == "advertising",
         "HOLD_MARKET_MISMATCH": account.get("market") == campaign.get("market"),
         "HOLD_PLATFORM_MISMATCH": account.get("platform") == platform,
