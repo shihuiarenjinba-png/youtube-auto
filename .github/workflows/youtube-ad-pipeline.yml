@@ -8,6 +8,7 @@ on:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
       - test-triggers/phase-c-tiktok.txt
+      - test-triggers/safety-only.txt
   workflow_dispatch:
     inputs:
       market:
