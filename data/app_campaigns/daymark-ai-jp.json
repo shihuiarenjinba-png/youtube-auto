@@ -3,15 +3,12 @@
   "campaign_id": "daymark-ai-jp-20261120",
   "app_id": "OkinawaDesktopTools.DaymarkAI",
   "product_name": "Daymark AI",
-  "status": "DRAFT",
-  "hold_reasons": [
-    "HOLD_STORE_NOT_PUBLISHED",
-    "HOLD_PRICE_NOT_CONFIRMED"
-  ],
+  "status": "ACTIVE",
+  "hold_reasons": [],
   "market": "JP",
   "language": "ja",
   "official_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
-  "store_url": "",
+  "store_url": "https://apps.microsoft.com/search?query=Daymark%20AI",
   "product_page_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
   "source_urls": [
     "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
@@ -37,13 +34,31 @@
   ],
   "price": null,
   "screenshots": [
-    {"path": "assets/advertising/daymark-ai/01-diary-entry.png", "sha256": "08b7cece062adf20597143efaca2541ef74a615e05659aa7d8bf70d32f44db13"},
-    {"path": "assets/advertising/daymark-ai/02-habit-checklist.png", "sha256": "84aff59adc5a4fbd2b98cb2e6425aecf019d87f81e23b1635c0a37a4e80b175e"},
-    {"path": "assets/advertising/daymark-ai/03-calendar-history.png", "sha256": "643395b43adfb4dc1f4ad39271fefc10ecdb6417b1aafe57ac42cc0ef4dac091"},
-    {"path": "assets/advertising/daymark-ai/04-diary-recall.png", "sha256": "d258437203d74f56504cc7ec208042b5e8e5806efd9c93a67216e376d9572f5d"},
-    {"path": "assets/advertising/daymark-ai/05-ai-model-selection.png", "sha256": "5da17839530f6e7d1bfc07b7f813bc0de6a1815a0ef5aee327e2e27cf9dbca5f"}
+    {
+      "path": "assets/advertising/daymark-ai/01-diary-entry.png",
+      "sha256": "08b7cece062adf20597143efaca2541ef74a615e05659aa7d8bf70d32f44db13"
+    },
+    {
+      "path": "assets/advertising/daymark-ai/02-habit-checklist.png",
+      "sha256": "84aff59adc5a4fbd2b98cb2e6425aecf019d87f81e23b1635c0a37a4e80b175e"
+    },
+    {
+      "path": "assets/advertising/daymark-ai/03-calendar-history.png",
+      "sha256": "643395b43adfb4dc1f4ad39271fefc10ecdb6417b1aafe57ac42cc0ef4dac091"
+    },
+    {
+      "path": "assets/advertising/daymark-ai/04-diary-recall.png",
+      "sha256": "d258437203d74f56504cc7ec208042b5e8e5806efd9c93a67216e376d9572f5d"
+    },
+    {
+      "path": "assets/advertising/daymark-ai/05-ai-model-selection.png",
+      "sha256": "5da17839530f6e7d1bfc07b7f813bc0de6a1815a0ef5aee327e2e27cf9dbca5f"
+    }
   ],
-  "supported_languages": ["ja", "en"],
+  "supported_languages": [
+    "ja",
+    "en"
+  ],
   "system_requirements": [
     "Windows 10またはWindows 11、x64",
     "Microsoft Edge WebView2 Runtime"
@@ -52,12 +67,16 @@
   "help_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/support",
   "version": "1.0.4.0",
   "release_notes": [],
-  "cta_url": "https://daymark-ai-help.bronzekoi37.chatgpt.site/",
+  "cta_url": "https://apps.microsoft.com/search?query=Daymark%20AI",
   "local_evidence": [
     {
       "source_locator": "local://daymark-ai/store/product.json",
       "sha256": "2a2b8a8437e81aa942c6689df5ae44ba5a05846917adad61ef3dbfec6870bbd8",
-      "snippets": ["Daymark AI", "OkinawaDesktopTools.DaymarkAI", "1.0.4.0"]
+      "snippets": [
+        "Daymark AI",
+        "OkinawaDesktopTools.DaymarkAI",
+        "1.0.4.0"
+      ]
     },
     {
       "source_locator": "local://daymark-ai/docs/store/DAYMARK_STORE_LISTING.md",
