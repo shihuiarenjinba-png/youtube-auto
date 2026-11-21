@@ -39,10 +39,16 @@ def validate_campaign(campaign: dict[str, Any]) -> None:
         raise CampaignHold("HOLD_CAMPAIGN_SOURCE_URL_DUPLICATE")
     for url in [campaign["official_url"], *source_urls]:
         validate_public_https(str(url))
+    store_url = str(campaign.get("store_url") or "")
+    if store_url:
+        validate_public_https(store_url)
     cta_url = str(campaign.get("cta_url") or "")
     if cta_url:
         validate_public_https(cta_url)
-        if cta_url not in {str(campaign["official_url"]), *[str(x) for x in source_urls]}:
+        approved_ctas = {str(campaign["official_url"]), *[str(x) for x in source_urls]}
+        if store_url:
+            approved_ctas.add(store_url)
+        if cta_url not in approved_ctas:
             raise CampaignHold("HOLD_CAMPAIGN_CTA_NOT_AN_APPROVED_SOURCE")
     for item in campaign.get("local_evidence") or []:
         if len(str(item.get("sha256") or "")) != 64 or not item.get("snippets"):
