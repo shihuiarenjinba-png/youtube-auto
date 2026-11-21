@@ -7,12 +7,36 @@
       "market": "JP",
       "purpose": "advertising",
       "instagram": [
-        {"account_id": "6a9799d277555aae01bd18c1", "credential_env": "ZERNIO_API_KEY_1", "purpose": "advertising"},
-        {"account_id": "6a97e50d77555aae01bf3321", "credential_env": "ZERNIO_API_KEY_2", "purpose": "advertising"}
+        {
+          "account_id": "6a9799d277555aae01bd18c1",
+          "credential_env": "ZERNIO_API_KEY_1",
+          "purpose": "advertising",
+          "market": "JP",
+          "platform": "instagram"
+        },
+        {
+          "account_id": "6a97e50d77555aae01bf3321",
+          "credential_env": "ZERNIO_API_KEY_2",
+          "purpose": "advertising",
+          "market": "JP",
+          "platform": "instagram"
+        }
       ],
       "tiktok": [
-        {"account_id": "6a97712377555aae01bbe410", "credential_env": "ZERNIO_API_KEY_1", "purpose": "advertising"},
-        {"account_id": "6a97e53877555aae01bf3417", "credential_env": "ZERNIO_API_KEY_2", "purpose": "advertising"}
+        {
+          "account_id": "6a97712377555aae01bbe410",
+          "credential_env": "ZERNIO_API_KEY_1",
+          "purpose": "advertising",
+          "market": "JP",
+          "platform": "tiktok"
+        },
+        {
+          "account_id": "6a97e53877555aae01bf3417",
+          "credential_env": "ZERNIO_API_KEY_2",
+          "purpose": "advertising",
+          "market": "JP",
+          "platform": "tiktok"
+        }
       ],
       "max_videos_per_day": 2
     },
@@ -20,10 +44,22 @@
       "market": "US",
       "purpose": "advertising",
       "instagram": [
-        {"account_id": "6a97a82b77555aae01bd7b83", "credential_env": "ZERNIO_API_KEY_1", "purpose": "advertising"}
+        {
+          "account_id": "6a97a82b77555aae01bd7b83",
+          "credential_env": "ZERNIO_API_KEY_1",
+          "purpose": "advertising",
+          "market": "US",
+          "platform": "instagram"
+        }
       ],
       "tiktok": [
-        {"account_id": "6a979de977555aae01bd41ca", "credential_env": "ZERNIO_API_KEY_1", "purpose": "advertising"}
+        {
+          "account_id": "6a979de977555aae01bd41ca",
+          "credential_env": "ZERNIO_API_KEY_1",
+          "purpose": "advertising",
+          "market": "US",
+          "platform": "tiktok"
+        }
       ],
       "max_videos_per_day": 2
     }
