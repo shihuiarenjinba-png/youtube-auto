@@ -211,7 +211,7 @@ class PipelineSafetyTests(unittest.TestCase):
 
     def test_controlled_instagram_runner_is_single_account_and_no_youtube(self):
         source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
-        self.assertIn('choices=["instagram"]', source)
+        self.assertIn('choices=["instagram", "tiktok"]', source)
         self.assertIn("HOLD_CONTROLLED_ACCOUNT_NOT_EXACTLY_ONE", source)
         self.assertIn("idempotency_key(", source)
         self.assertNotIn("videos().insert", source)
