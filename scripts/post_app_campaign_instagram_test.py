@@ -77,9 +77,9 @@ def _published_url(value: dict[str, Any]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Phase C: one controlled Instagram app-ad post")
+    parser = argparse.ArgumentParser(description="Phase C: one controlled social app-ad post")
     parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--platform", choices=["instagram"], required=True)
+    parser.add_argument("--platform", choices=["instagram", "tiktok"], required=True)
     parser.add_argument("--account-id", required=True)
     parser.add_argument("--language", choices=["ja"], default="ja")
     parser.add_argument("--zernio-base-url", default="https://zernio.com/api/v1")
@@ -122,13 +122,25 @@ def main() -> int:
         )
         media = client.upload_temp_media(output)
 
+        tiktok_ok = True
+        if args.platform == "tiktok":
+            capacity = client.tiktok_capacity(args.account_id)
+            can_post_more = capacity.get("can_post_more")
+            max_duration = int(capacity.get("max_video_duration_seconds") or 0)
+            tiktok_ok = can_post_more is not False and max_duration >= int(validation["duration_seconds"])
+
         validate_preflight(
             campaign=grounded,
             account=account,
             platform=args.platform,
             media_valid=True,
             duplicate_found=False,
-            capacity_ok=bool(health.get("can_post") and health.get("token_valid") and not health.get("needs_reconnect")),
+            capacity_ok=bool(
+                health.get("can_post")
+                and health.get("token_valid")
+                and not health.get("needs_reconnect")
+                and tiktok_ok
+            ),
             posts_today=0,
             last_posted_at=None,
             now=datetime.now(timezone.utc),
@@ -169,7 +181,7 @@ def main() -> int:
                     raise ZernioValidationError("HOLD_CONTROLLED_POST_FAILED")
 
         result = {
-            "status": "APP_CAMPAIGN_INSTAGRAM_CONTROLLED_POST_PASS",
+            "status": "APP_CAMPAIGN_SOCIAL_CONTROLLED_POST_PASS",
             "campaign_id": campaign["campaign_id"],
             "app_id": campaign["app_id"],
             "platform": args.platform,
