@@ -1,2 +1,3 @@
-Safety-only validation for six-product advertising registry and availability notice.
-No external posting or media transfer authorized.
+Safety-only validation for secure advertising YouTube secret setup.
+No external posting, media transfer, OAuth reauthorization, or YouTube write is authorized.
+Validation target: input -> GitHub Secrets send path -> read-only identity verification wiring.
