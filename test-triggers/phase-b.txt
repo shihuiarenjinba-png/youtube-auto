@@ -1,0 +1,2 @@
+Daymark AI Phase B controlled media-transfer trigger.
+No social post creation is authorized by this trigger.
