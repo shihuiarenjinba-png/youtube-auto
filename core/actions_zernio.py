@@ -39,15 +39,23 @@ class ActionsZernioClient:
             raise ZernioValidationError("Zernio response is not a JSON object")
         return value
 
-    def _post_json(self, path: str, *, body: dict[str, Any]) -> dict[str, Any]:
+    def _post_json(
+        self,
+        path: str,
+        *,
+        body: dict[str, Any],
+        extra_headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "youtube-auto-social-validator/1.0",
+        }
+        headers.update(extra_headers or {})
         response = requests.post(
             f"{self.base_url}/{path.lstrip('/')}",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "User-Agent": "youtube-auto-social-validator/1.0",
-            },
+            headers=headers,
             json=body,
             timeout=self.timeout,
         )
@@ -125,3 +133,36 @@ class ActionsZernioClient:
             "can_post_more": can_post_more if isinstance(can_post_more, bool) else None,
             "max_video_duration_seconds": int(limits.get("maxVideoDurationSec") or 0),
         }
+
+
+    def create_video_post_now(
+        self,
+        *,
+        platform: str,
+        account_id: str,
+        content: str,
+        media_url: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        if platform not in {"instagram", "tiktok"}:
+            raise ZernioValidationError("Unsupported controlled-post platform")
+        if not account_id.strip() or not content.strip() or not idempotency_key.strip():
+            raise ZernioValidationError("Controlled-post fields are incomplete")
+        parsed = urlparse(media_url)
+        if parsed.scheme != "https" or not (parsed.hostname or "").lower().endswith("zernio.com"):
+            raise ZernioValidationError("Controlled-post media URL is unexpected")
+        return self._post_json(
+            "/posts",
+            body={
+                "content": content,
+                "mediaItems": [{"type": "video", "url": media_url}],
+                "platforms": [{"platform": platform, "accountId": account_id}],
+                "publishNow": True,
+            },
+            extra_headers={"Idempotency-Key": idempotency_key},
+        )
+
+    def get_post(self, post_id: str) -> dict[str, Any]:
+        if not post_id.strip():
+            raise ZernioValidationError("Post ID is missing")
+        return self._get(f"/posts/{post_id}")
