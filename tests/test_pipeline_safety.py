@@ -208,6 +208,22 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn('"youtube_write_performed": False', source)
         self.assertIn('"zodiac_write_performed": False', source)
 
+
+    def test_controlled_instagram_runner_is_single_account_and_no_youtube(self):
+        source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
+        self.assertIn('choices=["instagram"]', source)
+        self.assertIn("HOLD_CONTROLLED_ACCOUNT_NOT_EXACTLY_ONE", source)
+        self.assertIn("idempotency_key(", source)
+        self.assertNotIn("videos().insert", source)
+        self.assertIn('"youtube_write_performed": False', source)
+        self.assertIn('"zodiac_write_performed": False', source)
+
+    def test_zernio_controlled_post_uses_idempotency_header(self):
+        source = (ROOT / "core" / "actions_zernio.py").read_text(encoding="utf-8")
+        self.assertIn('"Idempotency-Key": idempotency_key', source)
+        self.assertIn('"publishNow": True', source)
+        self.assertIn('"platforms": [{"platform": platform, "accountId": account_id}]', source)
+
     def test_zernio_workflow_is_read_only(self):
         workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
         self.assertIn("scripts/check_social_accounts.py", workflow)
