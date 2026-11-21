@@ -1,6 +1,11 @@
 name: Advertising Pipeline - Safe Validation
 
 on:
+  push:
+    branches:
+      - codex/port-proven-uploader
+    paths:
+      - test-triggers/phase-b.txt
   workflow_dispatch:
     inputs:
       market:
@@ -177,3 +182,32 @@ jobs:
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
         run: python scripts/check_social_accounts.py --language en
+
+  phase-b-daymark-media-transfer:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-b]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install app-ad dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Generate grounded Daymark ad and transfer media only
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/transfer_app_campaign_media.py
+          --dataset data/app_campaigns/daymark-ai-jp.json
+      - name: Assert no retained media
+        if: always()
+        run: |
+          test ! -d "$RUNNER_TEMP/daymark-phase-b"
