@@ -199,6 +199,46 @@ class PipelineSafetyTests(unittest.TestCase):
             )
 
 
+
+    def test_campaign_registry_contains_six_targets_and_truthful_namidata_limit(self):
+        registry = json.loads((ROOT / "data" / "app_campaigns" / "campaign_registry.json").read_text(encoding="utf-8"))
+        campaigns = registry["campaigns"]
+        self.assertEqual(len(campaigns), 6)
+        names = {row["product_name"] for row in campaigns}
+        self.assertEqual(
+            names,
+            {"Daymark AI", "Folio AI", "STRATEGY MARKET", "STRATEGY MARKET US", "DemandScope", "NamiData Lab"},
+        )
+        nami = next(row for row in campaigns if row["product_name"] == "NamiData Lab")
+        self.assertTrue(nami["limited_availability"])
+        self.assertIsNone(nami["exact_remaining_count"])
+        self.assertIn("提供数に上限", nami["availability_notice_ja"])
+
+    def test_grounded_content_preserves_limited_availability_without_fake_count(self):
+        dataset = {
+            "grounding_status": "PASS",
+            "campaign_id": "nami-test",
+            "app_id": "namidata-lab",
+            "market": "JP",
+            "language": "ja",
+            "source_urls": ["https://example.com"],
+            "source_hashes": ["a" * 64],
+            "generated_from_source_hash": "b" * 64,
+            "evidence_hash": "c" * 64,
+            "product_name": "NamiData Lab",
+            "description": "データ分析を支援します。",
+            "features": ["相関分析", "回帰分析", "レポート出力"],
+            "cta_url": "https://example.com",
+            "posting_eligible": True,
+            "hold_reasons": [],
+            "limited_availability": True,
+            "availability_notice_ja": "提供数に上限があります。",
+        }
+        content = generate_app_ad_content(dataset)
+        self.assertTrue(content["limited_availability"])
+        self.assertIn("提供数に上限があります。", content["caption"])
+        self.assertNotRegex(content["caption"], r"残り\s*\d+")
+
     def test_phase_b_media_transfer_has_no_social_post_or_youtube_write(self):
         source = (ROOT / "scripts" / "transfer_app_campaign_media.py").read_text(encoding="utf-8")
         self.assertIn("upload_temp_media", source)
