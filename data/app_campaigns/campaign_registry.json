@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "rotation_policy": {
+    "enabled": false,
+    "initial_posts_per_day": {
+      "instagram": 1,
+      "tiktok": 1,
+      "youtube": 0
+    },
+    "note": "Enable only after each campaign passes grounded dry-run and one controlled social post."
+  },
+  "campaigns": [
+    {
+      "campaign_id": "daymark-ai-jp-20261120",
+      "product_name": "Daymark AI",
+      "product_type": "microsoft_store_app",
+      "market": "JP",
+      "status": "ACTIVE",
+      "cta_url": "https://apps.microsoft.com/search?query=Daymark%20AI",
+      "limited_availability": false
+    },
+    {
+      "campaign_id": "folio-ai-jp",
+      "product_name": "Folio AI",
+      "product_type": "microsoft_store_app",
+      "market": "JP",
+      "status": "ACTIVE",
+      "cta_url": "https://apps.microsoft.com/search?query=Folio%20AI",
+      "limited_availability": false
+    },
+    {
+      "campaign_id": "strategy-market-jp",
+      "product_name": "STRATEGY MARKET",
+      "product_type": "microsoft_store_app",
+      "market": "JP",
+      "status": "ACTIVE",
+      "cta_url": "https://apps.microsoft.com/search?query=STRATEGY%20MARKET",
+      "limited_availability": false
+    },
+    {
+      "campaign_id": "strategy-market-us",
+      "product_name": "STRATEGY MARKET US",
+      "product_type": "microsoft_store_app",
+      "market": "US",
+      "status": "ACTIVE",
+      "cta_url": "https://apps.microsoft.com/search?query=STRATEGY%20MARKET%20US",
+      "limited_availability": false
+    },
+    {
+      "campaign_id": "demandscope-jp",
+      "product_name": "DemandScope",
+      "product_type": "web_app",
+      "market": "JP",
+      "status": "ACTIVE",
+      "cta_url": "https://web-stock-78r.pages.dev/",
+      "limited_availability": false
+    },
+    {
+      "campaign_id": "namidata-lab-jp",
+      "product_name": "NamiData Lab",
+      "product_type": "web_app",
+      "market": "JP",
+      "status": "ACTIVE",
+      "plans": [
+        {
+          "name": "Lite",
+          "monthly_price_jpy": 980
+        },
+        {
+          "name": "Pro",
+          "monthly_price_jpy": 9800
+        }
+      ],
+      "cta_url": "https://namidata-lab-public.lingering-salad-74bc.workers.dev/",
+      "limited_availability": true,
+      "availability_notice_ja": "提供数に上限があります。受付状況により新規申込を停止する場合があります。",
+      "availability_notice_en": "Availability is limited. New sign-ups may be paused when capacity is reached.",
+      "exact_remaining_count": null
+    }
+  ]
+}
