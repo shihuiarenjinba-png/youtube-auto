@@ -41,7 +41,8 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn(jp["expected_channel_id"], ZODIAC_IDS)
         self.assertEqual(us["local_account_number"], "2")
         self.assertEqual(us["expected_channel_id"], "")
-        self.assertEqual(us["identity_status"], "HOLD_US_AD_ACCOUNT_NOT_CONFIRMED")
+        self.assertEqual(us["known_channel_handle"], "sleepdeep.knowledge")
+        self.assertEqual(us["identity_status"], "HOLD_US_AD_CHANNEL_ID_DISCOVERY_REQUIRED")
 
     def test_workflow_has_no_schedule_or_write_mode(self):
         workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
@@ -75,6 +76,17 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("HOLD_OAUTH_READ_ONLY_CHECK_FAILED", source)
         self.assertIn('"fallback_performed": False', source)
         self.assertIn("raise SystemExit(2) from None", source)
+
+
+    def test_us_discovery_mode_is_read_only_and_requires_pinning_for_normal_check(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "audit_advertising_youtube.py").read_text(encoding="utf-8")
+        self.assertIn("advertising-oauth-discovery", workflow)
+        self.assertIn("--discover", workflow)
+        self.assertIn('parser.add_argument("--discover"', runner)
+        self.assertIn("ADVERTISING_OAUTH_DISCOVERY_PASS", runner)
+        self.assertIn('"write_performed": False', runner)
+        self.assertNotIn("videos().insert", runner)
 
     def test_legacy_pipeline_entry_is_fail_closed(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts" / "run_ad_pipeline.py")], capture_output=True, text=True)
