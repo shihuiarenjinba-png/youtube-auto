@@ -30,11 +30,12 @@ def load_config(market: str) -> tuple[dict, set[str]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read-only advertising YouTube identity check")
     parser.add_argument("--market", choices=("jp", "us"), required=True)
+    parser.add_argument("--discover", action="store_true", help="Read actual channel identity even when expected_channel_id is not yet pinned")
     args = parser.parse_args()
 
     lane, zodiac_ids = load_config(args.market)
     expected = str(lane.get("expected_channel_id") or "").strip()
-    if not expected:
+    if not expected and not args.discover:
         raise RuntimeError(str(lane.get("identity_status") or "HOLD_AD_CHANNEL_UNKNOWN"))
     if expected in zodiac_ids:
         raise RuntimeError("HOLD_ZODIAC_CHANNEL_CONFIGURED_AS_ADVERTISING")
@@ -47,15 +48,17 @@ def main() -> int:
     ).check()
     if identity.channel_id in zodiac_ids:
         raise RuntimeError("HOLD_ZODIAC_OAUTH_PRESENTED_TO_ADVERTISING_LANE")
-    if identity.channel_id != expected:
+    if expected and identity.channel_id != expected:
         raise RuntimeError("HOLD_ADVERTISING_CHANNEL_ID_MISMATCH")
 
     print(json.dumps({
-        "status": "ADVERTISING_OAUTH_IDENTITY_PASS",
+        "status": "ADVERTISING_OAUTH_DISCOVERY_PASS" if args.discover and not expected else "ADVERTISING_OAUTH_IDENTITY_PASS",
         "namespace": f"advertising.{args.market}",
         "account_number": lane["local_account_number"],
         "actual_channel_id": identity.channel_id,
         "actual_channel_title": identity.title,
+        "expected_channel_id": expected,
+        "identity_pinned": bool(expected),
         "write_performed": False,
         "token_persisted": False,
     }, ensure_ascii=False, indent=2))
