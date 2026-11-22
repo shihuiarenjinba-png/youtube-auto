@@ -32,12 +32,13 @@
       "local_account_number": "2",
       "local_token_filename": "token_2.json",
       "expected_channel_id": "",
-      "identity_status": "HOLD_US_AD_ACCOUNT_NOT_CONFIRMED",
+      "identity_status": "HOLD_US_AD_CHANNEL_ID_DISCOVERY_REQUIRED",
       "secret_names": {
         "client_id": "AD_YOUTUBE_CLIENT_ID_US",
         "client_secret": "AD_YOUTUBE_CLIENT_SECRET_US",
         "refresh_token": "AD_YOUTUBE_REFRESH_TOKEN_US"
-      }
+      },
+      "known_channel_handle": "sleepdeep.knowledge"
     }
   }
 }
