@@ -1,3 +1,2 @@
-Safety-only validation for secure advertising YouTube secret setup.
-No external posting, media transfer, OAuth reauthorization, or YouTube write is authorized.
-Validation target: input -> GitHub Secrets send path -> read-only identity verification wiring.
+Safety-only validation for advertising YouTube identity discovery and JP connection wiring.
+No external post, media transfer, OAuth reauthorization, or YouTube write is authorized.
