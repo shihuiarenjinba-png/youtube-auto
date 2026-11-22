@@ -23,6 +23,7 @@ on:
         type: choice
         options:
           - advertising-oauth-check
+          - advertising-oauth-discovery
           - rag-dry-run
           - app-campaign-rag-dry-run
           - social-check
@@ -83,7 +84,7 @@ jobs:
 
   advertising-us-oauth-read-only:
     needs: safety-tests
-    if: inputs.mode == 'advertising-oauth-check' && inputs.market == 'us'
+    if: (inputs.mode == 'advertising-oauth-check' || inputs.mode == 'advertising-oauth-discovery') && inputs.market == 'us'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -94,12 +95,17 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --disable-pip-version-check google-api-python-client google-auth
-      - name: Fail closed until advertising.us channel identity is confirmed
+      - name: Discover or verify advertising.us OAuth identity without writing
         env:
           AD_YOUTUBE_CLIENT_ID_US: ${{ secrets.AD_YOUTUBE_CLIENT_ID_US }}
           AD_YOUTUBE_CLIENT_SECRET_US: ${{ secrets.AD_YOUTUBE_CLIENT_SECRET_US }}
           AD_YOUTUBE_REFRESH_TOKEN_US: ${{ secrets.AD_YOUTUBE_REFRESH_TOKEN_US }}
-        run: python scripts/audit_advertising_youtube.py --market us
+        run: |
+          if [ "${{ inputs.mode }}" = "advertising-oauth-discovery" ]; then
+            python scripts/audit_advertising_youtube.py --market us --discover
+          else
+            python scripts/audit_advertising_youtube.py --market us
+          fi
 
   rag-dry-run:
     needs: safety-tests
