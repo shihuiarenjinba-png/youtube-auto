@@ -131,11 +131,9 @@ def render_review_cards(
     product = str(campaign["product_name"])
     summary = str(content.get("summary") or "")
     cta_url = str(content.get("cta_url") or "")
-    end_card_details = "\n".join(
-        str(value).strip()
-        for value in (content.get("video_end_card_text"), cta_url)
-        if str(value or "").strip()
-    )
+    # Keep the long clickable Store URL in the caption only.
+    # The vertical end card should use the short, grounded CTA text.
+    end_card_details = str(content.get("video_end_card_text") or "").strip()
     cards = [
         ("Windows PCに記録", f"{summary}\n{features[0]}", screenshots[0]),
         ("毎日の習慣も", features[1], screenshots[1]),
