@@ -22,7 +22,7 @@ from core.advertising_rag import (
 from core.app_campaigns import build_grounded_dataset, generate_app_ad_content, load_campaign
 from core.app_ad_video import AppVideoHold, verify_screenshots
 from core.social_posting_policy import content_fingerprint, choose_round_robin, validate_preflight
-from core.social_post_ledger import GitHubSocialPostLedger, ledger_policy_state
+from core.social_post_ledger import GitHubSocialPostLedger, SocialLedgerHold, ledger_policy_state
 from scripts.reconcile_advertising_social_posts import (  # noqa: E402
     ReconciliationHold,
     build_reconciliation_result,
@@ -648,6 +648,97 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 2)
         self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
         self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
+
+
+    def test_ledger_daily_cap_and_minimum_interval_use_account_history(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [
+                {
+                    "status": "PUBLISHED",
+                    "platform": "instagram",
+                    "account_id": "ig-account",
+                    "video_sha256": "a" * 64,
+                    "reserved_at": "2026-11-23T10:15:00+00:00",
+                },
+                {
+                    "status": "RESERVED",
+                    "platform": "instagram",
+                    "account_id": "ig-account",
+                    "video_sha256": "b" * 64,
+                    "reserved_at": "2026-11-23T11:30:00+00:00",
+                },
+            ],
+        }
+        state = ledger_policy_state(
+            ledger,
+            campaign_id="new-campaign",
+            video_sha256="c" * 64,
+            platform="instagram",
+            account_id="ig-account",
+            idempotency_key_sha256="d" * 64,
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertFalse(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 2)
+        self.assertEqual(state["last_posted_at"].isoformat(), "2026-11-23T11:30:00+00:00")
+
+    def test_aborted_before_post_reservation_does_not_permanently_block_retry(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [{
+                "status": "ABORTED_BEFORE_POST",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "video_sha256": "a" * 64,
+                "idempotency_key_sha256": "b" * 64,
+                "reserved_at": "2026-11-23T10:15:00+00:00",
+            }],
+        }
+        state = ledger_policy_state(
+            ledger,
+            campaign_id="new-campaign",
+            video_sha256="a" * 64,
+            platform="instagram",
+            account_id="ig-account",
+            idempotency_key_sha256="b" * 64,
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertFalse(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 0)
+        self.assertIsNone(state["last_posted_at"])
+
+    def test_ledger_rejects_status_regression(self):
+        stored = {
+            "schema_version": 1,
+            "records": [{
+                "idempotency_key_sha256": "a" * 64,
+                "status": "PUBLISHED",
+                "platform": "instagram",
+                "account_id": "ig-account",
+            }],
+        }
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()):
+            with self.assertRaisesRegex(SocialLedgerHold, "HOLD_SOCIAL_LEDGER_STATUS_TRANSITION_INVALID"):
+                ledger.update_post("a" * 64, status="CREATED")
+
+    def test_published_url_capture_only_accepts_platform_domains(self):
+        source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
+        self.assertIn('"instagram": "instagram.com"', source)
+        self.assertIn('"tiktok": "tiktok.com"', source)
+        self.assertIn("parsed.scheme == \"https\"", source)
+        self.assertIn('host.endswith("." + allowed_domain)', source)
 
 if __name__ == "__main__":
     unittest.main()
