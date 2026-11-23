@@ -24,3 +24,5 @@ Test the no-post GitHub Contents API ledger write probe.
 Recheck token scope assertions for read-only ledger permission probe.
 
 Verify manual resolution of SUBMISSION_UNKNOWN and publication-time quota handling.
+
+Verify aborted reservation reuse without creating a social post.
