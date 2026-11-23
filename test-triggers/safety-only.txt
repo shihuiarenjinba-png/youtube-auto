@@ -6,3 +6,5 @@ Retest Daymark review evidence bundle tests and explicit publication approval ma
 Daymark preview-generation request: create a review artifact only; do not publish or transfer any media.
 
 Retry no-publish Daymark preview after the runner import-path fix.
+
+Retry after resolving nested BGM path provenance and enlarging product UI in preview cards.
