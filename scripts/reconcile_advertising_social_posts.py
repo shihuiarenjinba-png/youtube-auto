@@ -80,6 +80,17 @@ def _public_https_url(value: Any) -> str:
     return candidate
 
 
+def _account_id_from_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ("id", "_id", "accountId", "account_id"):
+            nested = value.get(key)
+            if isinstance(nested, str) and nested.strip():
+                return nested.strip()
+    return ""
+
+
 def build_reconciliation_result(
     response: dict[str, Any],
     *,
@@ -100,11 +111,10 @@ def build_reconciliation_result(
     if len(targets) != 1:
         raise ReconciliationHold("HOLD_POST_PLATFORM_NOT_EXACTLY_ONE")
     target = targets[0]
-    response_account_id = str(
-        target.get("accountId")
-        or target.get("account_id")
-        or target.get("socialAccountId")
-        or ""
+    response_account_id = (
+        _account_id_from_value(target.get("accountId"))
+        or _account_id_from_value(target.get("account_id"))
+        or _account_id_from_value(target.get("socialAccountId"))
     )
     if response_account_id and response_account_id != account_id:
         raise ReconciliationHold("HOLD_POST_ACCOUNT_PLATFORM_MISMATCH")
@@ -179,7 +189,13 @@ def main() -> int:
                             "field": key,
                             "present": bool(row.get(key)),
                             "matches_requested": str(row.get(key) or "") == args.account_id,
-                            "length": len(str(row.get(key) or "")),
+                            "value_type": type(row.get(key)).__name__,
+                            "object_fields": sorted(str(nested_key) for nested_key in row[key].keys()) if isinstance(row.get(key), dict) else [],
+                            "nested_id_matches": {
+                                nested_key: isinstance(row[key].get(nested_key), str)
+                                and row[key].get(nested_key) == args.account_id
+                                for nested_key in ("id", "_id", "accountId", "account_id")
+                            } if isinstance(row.get(key), dict) else {},
                         }
                         for key in ("accountId", "account_id", "socialAccountId", "platformAccountId", "channelId")
                         if key in row
