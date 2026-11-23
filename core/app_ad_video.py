@@ -154,7 +154,8 @@ def render_review_cards(
         draw.rounded_rectangle((92, 350, 988, 1330), radius=26, fill="#E8ECF5")
         _paste_screenshot(canvas, screenshot, (116, 374, 964, 1306))
         _draw_wrapped(draw, (92, 1390), body, _font(38), (21, 31, 51), 890, 10)
-        draw.text((92, 1810), f"{index}/4  •  広告｜公式情報に基づく製品紹介", font=_font(26), fill="#61708A")
+        footer_disclosure = str(content.get("disclosure_statement") or disclosure_label)
+        draw.text((92, 1810), f"{index}/4  •  {footer_disclosure}", font=_font(26), fill="#61708A")
         path = output_dir / f"card-{index:02d}.png"
         canvas.save(path, "PNG", optimize=True)
         rendered.append(path)
