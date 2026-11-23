@@ -20,3 +20,5 @@ Verify branch-level concurrency for serialized social ledger writes.
 Verify ledger daily cap and aborted reservation recovery tests.
 
 Test the no-post GitHub Contents API ledger write probe.
+
+Recheck token scope assertions for read-only ledger permission probe.
