@@ -159,9 +159,10 @@ def render_review_cards(
         draw.rounded_rectangle(disclosure_box, radius=18, fill="#FFFFFF")
         draw.text((862, 82), disclosure_label, font=_font(30, bold=True), fill="#2459D3")
         _draw_wrapped(draw, (92, 164), headline, _font(64, bold=True), (255, 255, 255), 720, 10)
-        draw.rounded_rectangle((92, 350, 988, 1330), radius=26, fill="#E8ECF5")
-        _paste_screenshot(canvas, screenshot, (116, 374, 964, 1306))
-        _draw_wrapped(draw, (92, 1390), body, _font(38), (21, 31, 51), 890, 10)
+        # Keep the landscape app UI prominent instead of shrinking it inside a tall empty panel.
+        draw.rounded_rectangle((92, 350, 988, 1000), radius=26, fill="#E8ECF5")
+        _paste_screenshot(canvas, screenshot, (112, 374, 968, 976))
+        _draw_wrapped(draw, (92, 1050), body, _font(38), (21, 31, 51), 890, 10)
         footer_disclosure = str(content.get("disclosure_statement") or disclosure_label)
         draw.text((92, 1810), f"{index}/4  •  {footer_disclosure}", font=_font(26), fill="#61708A")
         path = output_dir / f"card-{index:02d}.png"
@@ -226,6 +227,7 @@ def build_local_review_video(
         "video_path": str(output_path),
         "video_sha256": sha256_file(output_path),
         "bgm_name": Path(bgm).name,
+        "bgm_path": Path(bgm).resolve().relative_to(root.resolve()).as_posix(),
         "card_count": len(cards),
     })
     return validation
@@ -297,14 +299,15 @@ def write_video_review_bundle(
     shutil.copy2(video_path, evidence_dir / video_name)
 
     bgm_name = str(validation.get("bgm_name") or "")
-    if not bgm_name:
-        raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_NAME_MISSING")
-    bgm_path = (root / "assets" / "bgm" / bgm_name).resolve()
+    bgm_relative_path = str(validation.get("bgm_path") or "")
+    if not bgm_name or not bgm_relative_path:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_PATH_MISSING")
+    bgm_path = (root / bgm_relative_path).resolve()
     try:
         bgm_path.relative_to((root / "assets" / "bgm").resolve())
     except ValueError as exc:
         raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_OUTSIDE_ASSET_ROOT") from exc
-    if not bgm_path.is_file():
+    if not bgm_path.is_file() or bgm_path.name != bgm_name:
         raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_MISSING")
     shutil.copy2(bgm_path, audio_dir / bgm_path.name)
 
