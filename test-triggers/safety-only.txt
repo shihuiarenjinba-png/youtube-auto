@@ -36,3 +36,4 @@ Ensure unknown social ledger states stop posting instead of being ignored.
 Validate explicit advertising disclosure in generated captions and video cards.
 
 Re-run disclosure tests after newline assertion correction.
+Daymark truthful Windows scope, optional Ollama disclosure, fixed Store-search caption and preserved API video plan.
