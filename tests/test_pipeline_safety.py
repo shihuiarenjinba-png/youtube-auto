@@ -158,7 +158,9 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn("print(", identity)
         self.assertNotIn("json.dump", identity)
         self.assertIn('"https://www.googleapis.com/auth/youtube.readonly"', identity)
-        self.assertNotIn("echo", source.lower())
+        self.assertNotIn('"client_secret":', source)
+        self.assertNotIn('"refresh_token":', source)
+        self.assertNotIn("print(required_env(", identity)
 
     def test_legacy_pipeline_entry_is_fail_closed(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts" / "run_ad_pipeline.py")], capture_output=True, text=True)
