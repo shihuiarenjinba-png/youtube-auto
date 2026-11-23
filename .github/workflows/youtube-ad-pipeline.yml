@@ -10,6 +10,8 @@ on:
       - test-triggers/phase-c-instagram.txt
       - test-triggers/phase-c-tiktok.txt
       - test-triggers/safety-only.txt
+      - test-triggers/reconcile-instagram.txt
+      - test-triggers/reconcile-tiktok.txt
   workflow_dispatch:
     inputs:
       market:
@@ -207,6 +209,53 @@ jobs:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
         run: python scripts/check_social_accounts.py --language en
 
+
+
+  social-jp-instagram-historical-reconcile:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[reconcile-instagram]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Read-only lookup of the existing JP Instagram Daymark post
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform instagram
+          --account-id 6a9799d277555aae01bd18c1
+          --post-id 6b01ebac9cb6859183df64b6
+
+  social-jp-tiktok-historical-reconcile:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[reconcile-tiktok]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Read-only lookup of the existing JP TikTok Daymark post
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform tiktok
+          --account-id 6a97712377555aae01bbe410
+          --post-id 6b01ec79154e1268344ff4eb
 
   social-jp-post-reconcile:
     needs: safety-tests
