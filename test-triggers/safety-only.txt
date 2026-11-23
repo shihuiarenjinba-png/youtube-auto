@@ -6,3 +6,5 @@ Read-only social post reconciliation regression tests.
 Verify platformPostUrl extraction and native post ID capture.
 
 Verify read-only retrieval for known historical posts.
+
+Test explicit read-only account provenance fallback.
