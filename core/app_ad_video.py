@@ -130,13 +130,7 @@ def render_review_cards(
     cta_url = str(content.get("cta_url") or "")
     end_card_details = "\n".join(
         str(value).strip()
-        for value in (
-            content.get("compatibility_notice"),
-            content.get("local_ai_notice"),
-            content.get("ai_independence_notice"),
-            content.get("store_link_notice"),
-            cta_url,
-        )
+        for value in (content.get("video_end_card_text"), cta_url)
         if str(value or "").strip()
     )
     cards = [
