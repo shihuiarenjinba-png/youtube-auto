@@ -679,12 +679,17 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 3)
         self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
         self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
-        for phase in ("phase-b", "phase-c-instagram", "phase-c-tiktok"):
+        expected_markers = {
+            "phase-b": "[phase-b]",
+            "phase-c-instagram": "[phase-c-instagram-approved]",
+            "phase-c-tiktok": "[phase-c-tiktok-approved]",
+        }
+        for phase, marker in expected_markers.items():
             self.assertIn(
                 "github.ref == 'refs/heads/codex/port-proven-uploader' "
-                + "&& contains(github.event.head_commit.message, '["
-                + phase
-                + "]')",
+                + "&& contains(github.event.head_commit.message, '"
+                + marker
+                + "')",
                 workflow,
             )
 
