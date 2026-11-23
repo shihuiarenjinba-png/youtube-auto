@@ -15,7 +15,7 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             assets = root / "assets" / "advertising" / "daymark-ai"
-            bgm_dir = root / "assets" / "bgm"
+            bgm_dir = root / "assets" / "bgm" / "music"
             cards_dir = root / "work" / "cards"
             assets.mkdir(parents=True)
             bgm_dir.mkdir(parents=True)
@@ -56,6 +56,7 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             validation = {
                 "video_sha256": sha256_file(video_path),
                 "bgm_name": bgm.name,
+                "bgm_path": "assets/bgm/music/local-track.mp3",
                 "codec": "h264",
                 "width": 1080,
                 "height": 1920,
@@ -95,10 +96,10 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             root = Path(temporary)
             source_dir = root / "assets" / "advertising" / "daymark-ai"
             cards_dir = root / "cards"
-            bgm_dir = root / "assets" / "bgm"
+            bgm_dir = root / "assets" / "bgm" / "music"
             source_dir.mkdir(parents=True)
             cards_dir.mkdir()
-            bgm_dir.mkdir()
+            bgm_dir.mkdir(parents=True)
             rows = []
             for index in range(4):
                 image_path = source_dir / f"screen-{index}.png"
