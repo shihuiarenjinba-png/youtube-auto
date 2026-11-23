@@ -782,5 +782,58 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn("requests.post", runner)
         self.assertIn('"social_post_performed": False', runner)
 
+
+    def test_unknown_submission_can_be_closed_after_manual_published_reconciliation(self):
+        stored = {
+            "schema_version": 1,
+            "records": [{
+                "idempotency_key_sha256": "e" * 64,
+                "status": "SUBMISSION_UNKNOWN",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "reserved_at": "2026-11-22T23:58:00+00:00",
+            }],
+        }
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()), patch(
+            "core.social_post_ledger.requests.put", return_value=FakeResponse()
+        ) as put:
+            updated = ledger.update_post(
+                "e" * 64,
+                status="PUBLISHED",
+                post_status="published",
+                published_url="https://www.instagram.com/p/RESOLVED123/",
+                published_url_verified=True,
+                published_at="2026-11-23T00:02:00+00:00",
+            )
+
+        self.assertEqual(updated["status"], "PUBLISHED")
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(persisted["records"][0]["status"], "PUBLISHED")
+        self.assertEqual(persisted["records"][0]["published_url_verified"], True)
+
+    def test_ledger_quota_timestamp_prefers_publication_over_reservation(self):
+        from core.social_post_ledger import _timestamp_for_record
+
+        record = {
+            "reserved_at": "2026-11-22T23:58:00+00:00",
+            "updated_at": "2026-11-23T00:03:00+00:00",
+            "published_at": "2026-11-23T00:02:00+00:00",
+        }
+        self.assertEqual(
+            _timestamp_for_record(record).isoformat(),
+            "2026-11-23T00:02:00+00:00",
+        )
+
 if __name__ == "__main__":
     unittest.main()
