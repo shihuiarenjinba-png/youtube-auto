@@ -233,6 +233,7 @@ jobs:
           --platform instagram
           --account-id 6a9799d277555aae01bd18c1
           --post-id 6b01ebac9cb6859183df64b6
+          --allow-account-id-omission
 
   social-jp-tiktok-historical-reconcile:
     needs: safety-tests
@@ -256,6 +257,7 @@ jobs:
           --platform tiktok
           --account-id 6a97712377555aae01bbe410
           --post-id 6b01ec79154e1268344ff4eb
+          --allow-account-id-omission
 
   social-jp-post-reconcile:
     needs: safety-tests
