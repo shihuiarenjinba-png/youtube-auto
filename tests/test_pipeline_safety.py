@@ -953,5 +953,27 @@ class PipelineSafetyTests(unittest.TestCase):
             "",
         )
 
+
+    def test_social_ledger_fails_closed_on_unknown_record_status(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [{
+                "status": "POSTING_IN_PROGRESS_V2",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "video_sha256": "a" * 64,
+            }],
+        }
+        with self.assertRaisesRegex(SocialLedgerHold, "HOLD_SOCIAL_LEDGER_STATUS_UNKNOWN"):
+            ledger_policy_state(
+                ledger,
+                campaign_id="new-campaign",
+                video_sha256="b" * 64,
+                platform="instagram",
+                account_id="ig-account",
+                idempotency_key_sha256="c" * 64,
+                now=datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc),
+            )
+
 if __name__ == "__main__":
     unittest.main()
