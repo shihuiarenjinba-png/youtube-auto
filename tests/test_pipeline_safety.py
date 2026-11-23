@@ -740,5 +740,47 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("parsed.scheme == \"https\"", source)
         self.assertIn('host.endswith("." + allowed_domain)', source)
 
+
+    def test_ledger_write_probe_updates_only_metadata_and_never_posts(self):
+        current_ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        encoded = base64.b64encode(json.dumps(current_ledger).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()), patch(
+            "core.social_post_ledger.requests.put",
+            return_value=FakeResponse(),
+        ) as put:
+            result = ledger.verify_writable()
+
+        self.assertEqual(result["status"], "SOCIAL_POST_LEDGER_WRITE_OK")
+        self.assertTrue(result["repository_write_performed"])
+        self.assertFalse(result["media_upload_performed"])
+        self.assertFalse(result["social_post_performed"])
+        self.assertFalse(result["youtube_write_performed"])
+        self.assertFalse(result["zodiac_write_performed"])
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(persisted["last_verified_at"], result["last_verified_at"])
+        self.assertEqual(persisted["records"], current_ledger["records"])
+
+    def test_workflow_ledger_write_check_has_no_social_write_surface(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "check_social_post_ledger.py").read_text(encoding="utf-8")
+        self.assertIn("social-ledger-check", workflow)
+        self.assertIn("[ledger-write-check]", workflow)
+        self.assertIn("social-ledger-write-check:", workflow)
+        self.assertIn("SOCIAL_LEDGER_TOKEN: ${{ github.token }}", workflow)
+        self.assertIn("scripts/check_social_post_ledger.py", workflow)
+        self.assertNotIn("create_video_post_now", runner)
+        self.assertNotIn("requests.post", runner)
+        self.assertIn('"social_post_performed": False', runner)
+
 if __name__ == "__main__":
     unittest.main()
