@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+from datetime import datetime, timezone
 import json
 import hashlib
 import contextlib
@@ -20,6 +22,7 @@ from core.advertising_rag import (
 from core.app_campaigns import build_grounded_dataset, generate_app_ad_content, load_campaign
 from core.app_ad_video import AppVideoHold, verify_screenshots
 from core.social_posting_policy import content_fingerprint, choose_round_robin, validate_preflight
+from core.social_post_ledger import GitHubSocialPostLedger, ledger_policy_state
 from scripts.reconcile_advertising_social_posts import (  # noqa: E402
     ReconciliationHold,
     build_reconciliation_result,
@@ -530,6 +533,121 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
         self.assertEqual(result["account_verification_source"], "zernio_post_response")
         self.assertEqual(result["published_url"], "https://www.instagram.com/p/NESTED123/")
+
+
+    def test_historical_post_ledger_contains_both_verified_public_posts(self):
+        ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        self.assertEqual(ledger["schema_version"], 1)
+        self.assertEqual(len(ledger["records"]), 2)
+        by_platform = {row["platform"]: row for row in ledger["records"]}
+        for platform, expected_url in (
+            ("instagram", "https://www.instagram.com/reel/DgA8UtNikNx/"),
+            ("tiktok", "https://www.tiktok.com/@nice_a17/video/7710703558940790017"),
+        ):
+            row = by_platform[platform]
+            self.assertEqual(row["status"], "PUBLISHED")
+            self.assertTrue(row["published_url_verified"])
+            self.assertEqual(row["published_url"], expected_url)
+            self.assertTrue(row["social_post_created"])
+
+    def test_persistent_ledger_blocks_same_media_for_same_advertising_account(self):
+        ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        instagram = next(row for row in ledger["records"] if row["platform"] == "instagram")
+        state = ledger_policy_state(
+            ledger,
+            campaign_id=instagram["campaign_id"],
+            video_sha256=instagram["video_sha256"],
+            platform="instagram",
+            account_id=instagram["account_id"],
+            idempotency_key_sha256=instagram["idempotency_key_sha256"],
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertTrue(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 0)
+        self.assertEqual(state["last_posted_at"].date().isoformat(), "2026-11-21")
+
+    def test_persistent_ledger_reservation_is_committed_before_any_post_write(self):
+        empty_ledger = {"schema_version": 1, "records": []}
+        encoded = base64.b64encode(json.dumps(empty_ledger).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def __init__(self, payload):
+                self.payload = payload
+
+            def json(self):
+                return self.payload
+
+        record = {
+            "idempotency_key_sha256": "a" * 64,
+            "campaign_id": "ledger-test",
+            "app_id": "test-app",
+            "product_name": "Test App",
+            "market": "JP",
+            "language": "ja",
+            "platform": "instagram",
+            "account_id": "ig-test-account",
+            "source_hash": "b" * 64,
+            "evidence_hash": "c" * 64,
+            "video_sha256": "d" * 64,
+            "store_url": "https://example.com",
+            "media_upload_performed": False,
+            "social_post_created": False,
+        }
+        campaign = {
+            "status": "ACTIVE",
+            "official_url": "https://example.com",
+            "source_urls": ["https://example.com"],
+            "store_url": "https://example.com",
+            "cta_url": "https://example.com",
+            "market": "JP",
+            "grounding_status": "PASS",
+        }
+        account = {"purpose": "advertising", "market": "JP", "platform": "instagram"}
+        ledger = GitHubSocialPostLedger(
+            token="test-token",
+            repository="owner/repo",
+            branch="test-branch",
+        )
+        with patch(
+            "core.social_post_ledger.requests.get",
+            return_value=FakeResponse({"sha": "old-sha", "content": encoded}),
+        ), patch(
+            "core.social_post_ledger.requests.put",
+            return_value=FakeResponse({"content": {"sha": "new-sha"}}),
+        ) as put:
+            reserved = ledger.reserve_post(
+                record=record,
+                campaign=campaign,
+                account=account,
+                platform="instagram",
+                capacity_ok=True,
+                now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(reserved["status"], "RESERVED")
+        self.assertTrue(reserved["reserved_at"])
+        self.assertEqual(put.call_count, 1)
+        body = put.call_args.kwargs["json"]
+        persisted = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
+        self.assertEqual(persisted["records"][0]["status"], "RESERVED")
+        self.assertEqual(body["branch"], "test-branch")
+
+    def test_controlled_post_runner_reserves_ledger_before_media_upload_and_social_post(self):
+        source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
+        self.assertLess(source.index("ledger.reserve_post("), source.index("client.upload_temp_media(output)"))
+        self.assertLess(source.index("client.upload_temp_media(output)"), source.index("client.create_video_post_now("))
+        self.assertIn("GitHubSocialPostLedger.from_environment()", source)
+        self.assertIn('"ledger_recorded": True', source)
+        self.assertIn('"ABORTED_BEFORE_POST"', source)
+        self.assertIn('"SUBMISSION_UNKNOWN"', source)
+
+    def test_phase_c_jobs_have_scoped_contents_write_for_the_ledger_only(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 2)
+        self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
+        self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
 
 if __name__ == "__main__":
     unittest.main()
