@@ -155,6 +155,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    diagnostics: dict[str, Any] = {}
     try:
         config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         account = resolve_advertising_account(
@@ -166,6 +167,28 @@ def main() -> int:
         api_key = os.environ.get(account["credential_env"], "")
         client = ActionsZernioClient(config["base_url"], api_key)
         response = client.get_post(args.post_id)
+        post_for_diagnostics = _extract_post(response)
+        platform_rows = post_for_diagnostics.get("platforms")
+        if isinstance(platform_rows, list):
+            diagnostics["platform_rows"] = [
+                {
+                    "platform": str(row.get("platform") or ""),
+                    "field_names": sorted(str(key) for key in row.keys()),
+                    "account_id_candidates": [
+                        {
+                            "field": key,
+                            "present": bool(row.get(key)),
+                            "matches_requested": str(row.get(key) or "") == args.account_id,
+                            "length": len(str(row.get(key) or "")),
+                        }
+                        for key in ("accountId", "account_id", "socialAccountId", "platformAccountId", "channelId")
+                        if key in row
+                    ],
+                }
+                for row in platform_rows
+                if isinstance(row, dict)
+            ]
+        diagnostics["post_field_names"] = sorted(str(key) for key in post_for_diagnostics.keys())
         result = build_reconciliation_result(
             response,
             platform=args.platform,
@@ -176,11 +199,14 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (OSError, ValueError, KeyError, ReconciliationHold, RuntimeError) as exc:
-        print(json.dumps({
+        output = {
             "status": str(exc) if str(exc).startswith("HOLD_") else "HOLD_SOCIAL_POST_RECONCILIATION_FAILED",
             "read_only": True,
             "write_performed": False,
-        }, ensure_ascii=False, indent=2))
+        }
+        if diagnostics:
+            output["safe_response_diagnostics"] = diagnostics
+        print(json.dumps(output, ensure_ascii=False, indent=2))
         return 2
 
 
