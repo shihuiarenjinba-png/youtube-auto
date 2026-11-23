@@ -47,6 +47,35 @@ def _status(value: dict[str, Any]) -> str:
     return str(value.get("status") or "").strip().lower()
 
 
+def _platform_post_status(
+    value: dict[str, Any], *, platform: str, account_id: str
+) -> str:
+    platforms = value.get("platforms")
+    if not isinstance(platforms, list):
+        return ""
+    matches = [
+        row for row in platforms
+        if isinstance(row, dict)
+        and str(row.get("platform") or "").lower() == platform
+        and (
+            _platform_account_id(row.get("accountId"))
+            or _platform_account_id(row.get("account_id"))
+        ) == account_id
+    ]
+    if len(matches) != 1:
+        return ""
+    return str(matches[0].get("status") or "").strip().lower()
+
+
+def _effective_post_status(
+    value: dict[str, Any], *, platform: str, account_id: str
+) -> str:
+    return (
+        _platform_post_status(value, platform=platform, account_id=account_id)
+        or _status(value)
+    )
+
+
 def _platform_failure(value: dict[str, Any]) -> str:
     platforms = value.get("platforms")
     if not isinstance(platforms, list):
@@ -240,7 +269,11 @@ def main() -> int:
         failure = _platform_failure(post)
         pid = _post_id(post) or _post_id(response)
         current = post
-        initial_status = _status(current) or _status(post) or "created"
+        initial_status = (
+            _effective_post_status(current, platform=args.platform, account_id=args.account_id)
+            or _effective_post_status(post, platform=args.platform, account_id=args.account_id)
+            or "created"
+        )
         initial_platform_post_id = (
             _platform_post_id(current, platform=args.platform, account_id=args.account_id)
             or _platform_post_id(post, platform=args.platform, account_id=args.account_id)
@@ -288,7 +321,9 @@ def main() -> int:
 
         if initial_status not in {"published", "failed"}:
             for _ in range(18):
-                status = _status(current)
+                status = _effective_post_status(
+                    current, platform=args.platform, account_id=args.account_id
+                )
                 if status in {"published", "failed"}:
                     break
                 time.sleep(5)
@@ -297,7 +332,10 @@ def main() -> int:
                 if failure or _status(current) == "failed":
                     break
 
-        final_status = _status(current) or initial_status
+        final_status = (
+            _effective_post_status(current, platform=args.platform, account_id=args.account_id)
+            or initial_status
+        )
         final_platform_post_id = (
             _platform_post_id(current, platform=args.platform, account_id=args.account_id)
             or initial_platform_post_id
