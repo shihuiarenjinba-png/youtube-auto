@@ -16,3 +16,5 @@ Verify nested Zernio account ID resolution.
 Validate persistent ledger reservation and duplicate prevention.
 
 Verify branch-level concurrency for serialized social ledger writes.
+
+Verify ledger daily cap and aborted reservation recovery tests.
