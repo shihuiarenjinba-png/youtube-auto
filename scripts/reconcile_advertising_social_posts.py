@@ -81,7 +81,12 @@ def _public_https_url(value: Any) -> str:
 
 
 def build_reconciliation_result(
-    response: dict[str, Any], *, platform: str, account_id: str, zernio_post_id: str
+    response: dict[str, Any],
+    *,
+    platform: str,
+    account_id: str,
+    zernio_post_id: str,
+    allow_account_id_omission: bool = False,
 ) -> dict[str, Any]:
     post = _extract_post(response)
     rows = post.get("platforms")
@@ -91,11 +96,23 @@ def build_reconciliation_result(
         row for row in rows
         if isinstance(row, dict)
         and str(row.get("platform") or "").lower() == platform
-        and str(row.get("accountId") or row.get("account_id") or "") == account_id
     ]
     if len(targets) != 1:
-        raise ReconciliationHold("HOLD_POST_ACCOUNT_PLATFORM_MISMATCH")
+        raise ReconciliationHold("HOLD_POST_PLATFORM_NOT_EXACTLY_ONE")
     target = targets[0]
+    response_account_id = str(
+        target.get("accountId")
+        or target.get("account_id")
+        or target.get("socialAccountId")
+        or ""
+    )
+    if response_account_id and response_account_id != account_id:
+        raise ReconciliationHold("HOLD_POST_ACCOUNT_PLATFORM_MISMATCH")
+    if not response_account_id and not allow_account_id_omission:
+        raise ReconciliationHold("HOLD_POST_ACCOUNT_ID_NOT_RETURNED")
+    account_verification_source = (
+        "zernio_post_response" if response_account_id else "original_creation_run_arguments"
+    )
     status = str(target.get("status") or post.get("status") or "").strip().lower()
     if status != "published":
         raise ReconciliationHold("HOLD_SOCIAL_POST_NOT_PUBLISHED")
@@ -113,6 +130,7 @@ def build_reconciliation_result(
         "status": "SOCIAL_POST_PUBLISHED_URL_CONFIRMED" if public_url else "SOCIAL_POST_PUBLISHED_URL_PENDING",
         "platform": platform,
         "account_id": account_id,
+        "account_verification_source": account_verification_source,
         "zernio_post_id": zernio_post_id,
         "platform_post_id": str(target.get("platformPostId") or ""),
         "post_status": status,
@@ -130,6 +148,11 @@ def main() -> int:
     parser.add_argument("--platform", choices=("instagram", "tiktok"), required=True)
     parser.add_argument("--account-id", required=True)
     parser.add_argument("--post-id", required=True, help="Zernio post ID, not a platform-native ID")
+    parser.add_argument(
+        "--allow-account-id-omission",
+        action="store_true",
+        help="Allow only pre-verified historical posts whose original creation run pins the account ID",
+    )
     args = parser.parse_args()
 
     try:
@@ -148,6 +171,7 @@ def main() -> int:
             platform=args.platform,
             account_id=args.account_id,
             zernio_post_id=args.post_id,
+            allow_account_id_omission=args.allow_account_id_omission,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
