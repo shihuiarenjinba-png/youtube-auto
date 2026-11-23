@@ -1,2 +1,4 @@
 Daymark review preview evidence validation only.
 No external media transfer, social post, API generation spend, or platform write is authorized.
+
+Retest Daymark review evidence bundle tests and explicit publication approval markers.
