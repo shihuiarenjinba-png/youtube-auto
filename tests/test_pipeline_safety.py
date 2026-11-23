@@ -20,6 +20,11 @@ from core.advertising_rag import (
 from core.app_campaigns import build_grounded_dataset, generate_app_ad_content, load_campaign
 from core.app_ad_video import AppVideoHold, verify_screenshots
 from core.social_posting_policy import content_fingerprint, choose_round_robin, validate_preflight
+from scripts.reconcile_advertising_social_posts import (  # noqa: E402
+    ReconciliationHold,
+    build_reconciliation_result,
+    resolve_advertising_account,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -382,6 +387,89 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(config["write_policy"], "DENY_ALL_WRITES")
         self.assertTrue(all(lane["schedule"] == "DISABLED" for lane in config["languages"].values()))
 
+
+
+    def test_social_post_reconciliation_extracts_public_url_and_native_id(self):
+        response = {
+            "post": {
+                "status": "published",
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": "ig-ad-1",
+                    "status": "published",
+                    "platformPostId": "native-123",
+                    "platformPostUrl": "https://www.instagram.com/reel/ABC123/",
+                    "publishedAt": "2026-11-21T19:07:26Z",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response, platform="instagram", account_id="ig-ad-1", zernio_post_id="zernio-post-1"
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["platform_post_id"], "native-123")
+        self.assertEqual(result["published_url"], "https://www.instagram.com/reel/ABC123/")
+        self.assertTrue(result["public_url_confirmed"])
+        self.assertTrue(result["read_only"])
+        self.assertFalse(result["write_performed"])
+
+    def test_tiktok_published_without_resolved_url_is_reported_as_pending(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "tiktok",
+                    "accountId": "tt-ad-1",
+                    "status": "published",
+                    "platformPostId": "",
+                    "publishedUrl": "",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response, platform="tiktok", account_id="tt-ad-1", zernio_post_id="zernio-post-2"
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_PENDING")
+        self.assertFalse(result["public_url_confirmed"])
+        self.assertFalse(result["write_performed"])
+
+    def test_social_post_reconciliation_rejects_wrong_platform_or_account(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": "another-account",
+                    "status": "published",
+                    "platformPostUrl": "https://www.instagram.com/p/ABC123/",
+                }],
+            }
+        }
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_POST_ACCOUNT_PLATFORM_MISMATCH"):
+            build_reconciliation_result(
+                response, platform="instagram", account_id="expected-account", zernio_post_id="zernio-post-3"
+            )
+
+    def test_social_reconciliation_account_resolution_is_advertising_scoped(self):
+        config = json.loads((ROOT / "config" / "social_lanes.json").read_text(encoding="utf-8"))
+        account = resolve_advertising_account(
+            config, language="ja", platform="instagram", account_id="6a9799d277555aae01bd18c1"
+        )
+        self.assertEqual(account["market"], "JP")
+        self.assertEqual(account["credential_env"], "ZERNIO_API_KEY_1")
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_ACCOUNT_NOT_EXACTLY_ONE"):
+            resolve_advertising_account(
+                config, language="ja", platform="instagram", account_id="not-an-ad-account"
+            )
+
+    def test_social_reconciliation_workflow_is_read_only_and_market_scoped(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "reconcile_advertising_social_posts.py").read_text(encoding="utf-8")
+        self.assertIn("social-post-reconcile", workflow)
+        self.assertIn("social-jp-post-reconcile", workflow)
+        self.assertIn("social-us-post-reconcile", workflow)
+        self.assertIn("client.get_post(args.post_id)", runner)
+        self.assertNotIn("create_video_post_now", runner)
+        self.assertNotIn("requests.post", runner)
+        self.assertIn('"write_performed": False', runner)
 
 if __name__ == "__main__":
     unittest.main()
