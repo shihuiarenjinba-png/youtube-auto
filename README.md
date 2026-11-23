@@ -1,44 +1,67 @@
 # youtube-auto
 
-Safe GitHub Actions validation scaffold for URL-grounded advertising. The
-repository is intentionally **not armed for posting**.
+Guarded, evidence-based advertising pipeline for the product campaigns in this
+repository. This is not an unrestricted or autonomous bulk-publishing system.
 
-## Current safety state
+## Verified operating boundaries
 
-- Manual `workflow_dispatch` only; no cron/schedule trigger.
-- No private, unlisted, public, or social-media upload mode.
-- YouTube identity checks are read-only (`channels.list(mine=true)`).
-- Zernio checks are read-only health/capacity requests; no `/v1/posts` or media
-  transfer is reachable from the workflow.
-- No credential is written to disk, committed, logged, or uploaded as an
-  artifact.
+- No cron or autonomous posting schedule is enabled.
+- YouTube OAuth checks are read-only; this repository has not verified or enabled
+  a YouTube upload path for these app campaigns.
+- The durable social-post ledger reserves each controlled post before external
+  media transfer and records the outcome.
+- A controlled Daymark AI JP Instagram Reel was published and confirmed through
+  the posting provider as `published`:
+  https://www.instagram.com/reel/DgFxrMlkffI/
+- The new ledger path has been exercised for that JP Instagram post. Historical
+  Instagram and TikTok posts were reconciled read-only; that is not the same as
+  testing a new TikTok post through the current ledger path.
+- No Zodiac account writes are permitted.
+- English/US posting and autonomous product rotation are not validated.
 
-## Account namespaces
+External posting is guarded by the operational branch, explicit workflow
+conditions, account identity checks, the persistent ledger, and idempotency.
+A successful test post must not be interpreted as permission for unrestricted
+campaign publishing.
 
-`config/account_namespaces.json` separates the systems:
+## Daymark AI — truthful product scope
 
-- `zodiac.ja` / `zodiac.en`: audit-only, `DENY_ALL_WRITES`.
-- `advertising.jp`: local account 3, expected advertising channel
-  `UC4n0nR7IBwN1KKr9T32RP_w`.
-- `advertising.us`: local account 2, channel unknown,
-  `HOLD_US_AD_ACCOUNT_NOT_CONFIRMED`.
+The current campaign dataset lists Windows 10 or Windows 11 (x64) and
+Microsoft Edge WebView2 Runtime as system requirements. Ads must describe it as
+a Windows PC app and must not imply that the app itself runs on macOS, iPhone,
+or Android.
 
-The legacy zodiac configuration remains only as a quarantined historical
-reference in `config/lanes.json`. It is not an advertising lane and has no active
-execution entry point.
+Local Ollama text assistance is optional. The core diary, habit, calendar,
+search, and backup functions are described as usable without AI.
 
-## Workflow modes
+The current fixed CTA is a Microsoft Store search URL, not a confirmed direct
+product-detail URL:
 
-Workflow: `Advertising Pipeline - Safe Validation`
+https://apps.microsoft.com/search?query=Daymark%20AI
 
-- `advertising-oauth-check`: verifies one exact advertising channel with
-  advertising-only secrets; no upload.
-- `rag-dry-run`: fetches one public HTTPS source, extracts evidence, and produces
-  grounded review JSON; no YouTube or social credential is supplied.
-- `social-check`: reads Zernio identity/health/TikTok capacity only.
+Always call it a Microsoft Store search link. Do not call it a direct install
+link, and do not publish a price without rechecking the exact product listing.
 
-The former zodiac pipeline entry point exits non-zero with
-`HOLD_LEGACY_ZODIAC_PIPELINE_ISOLATED`.
+See [Daymark AI advertising and video-production plan](docs/DAYMARK_AI_ADS_AND_VIDEO_PRODUCTION.md).
+
+## Video production status
+
+The currently verified renderer creates a portrait MP4 from four existing
+application screenshots, crossfades the cards, and adds a local BGM asset. It
+does **not** currently generate scene images through an image API or narration
+through a speech/voice API.
+
+The target API image-generation plus voice-generation route remains the
+intended production direction. The current screenshot/BGM renderer is only a
+temporary fallback and must not be presented as the target or described as an
+AI-generated image-and-voice video. The plan documents the stages and safety
+gates required before the API route is enabled.
+
+## Social account namespaces
+
+`config/account_namespaces.json` separates advertising accounts from the
+quarantined Zodiac accounts. The legacy Zodiac configuration is historical
+reference only and has a `DENY_ALL_WRITES` policy.
 
 ## Advertising GitHub Actions secrets
 
@@ -51,44 +74,8 @@ The active workflow recognizes only:
 - `AD_YOUTUBE_CLIENT_SECRET_US`
 - `AD_YOUTUBE_REFRESH_TOKEN_US`
 
-Legacy `YOUTUBE_*_JA/EN` secrets are not referenced. There is no JP/US or
-zodiac/advertising fallback.
+Legacy `YOUTUBE_*` secrets are not treated as equivalent. Their presence does
+not enable the advertising YouTube upload path.
 
-Zernio read-only checks use:
-
-- `ZERNIO_API_KEY_JP_1`
-- `ZERNIO_API_KEY_JP_2`
-- `ZERNIO_API_KEY_US_1`
-
-## URL-grounded RAG
-
-The implementation in `core/advertising_rag.py` is adapted from the existing
-`auto-blogger` fetch/extract/grounding path. It validates every redirect and
-accepts public HTTPS only. Output retains:
-
-- `campaign_id`
-- `source_url`
-- `canonical_url`
-- `generated_from_source_hash`
-- visible source facts and evidence snippets
-- grounded hook, summary, value proposition, key points, CTA, script, caption,
-  and hashtags
-
-Unavailable claims remain absent. Insufficient evidence fails with
-`HOLD_INSUFFICIENT_SOURCE_EVIDENCE`.
-
-Local example (no posting):
-
-```powershell
-python scripts/run_advertising_rag.py `
-  --market jp `
-  --campaign-id example-001 `
-  --source-url https://example.com/product
-```
-
-## Corrected provenance
-
-The earlier `auto-shorts-studio` port is a zodiac implementation, not the
-advertising source. Its historical upload evidence is not an advertising PASS.
-See `docs/ADVERTISING_REMAP_AUDIT_2026-11-20.md` and the correction banner in
-`docs/PORT_PROVENANCE_2026-11-17.md`.
+Zernio social credentials are scoped by the configured advertising account
+lanes. Secrets must never be printed or committed.
