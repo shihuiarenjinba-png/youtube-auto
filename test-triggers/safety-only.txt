@@ -2,3 +2,5 @@ Safety-only validation for advertising YouTube identity discovery and JP connect
 No external post, media transfer, OAuth reauthorization, or YouTube write is authorized.
 
 Read-only social post reconciliation regression tests.
+
+Verify platformPostUrl extraction and native post ID capture.
