@@ -28,6 +28,7 @@ from scripts.reconcile_advertising_social_posts import (  # noqa: E402
     build_reconciliation_result,
     resolve_advertising_account,
 )
+from scripts.post_app_campaign_instagram_test import _effective_post_status  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -912,6 +913,45 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(len(persisted["records"]), 1)
         self.assertEqual(persisted["records"][0]["status"], "RESERVED")
         self.assertEqual(persisted["records"][0]["idempotency_key_sha256"], "f" * 64)
+
+
+    def test_controlled_post_uses_exact_platform_publication_status(self):
+        response = {
+            "status": "processing",
+            "platforms": [{
+                "platform": "instagram",
+                "accountId": {"_id": "ig-ad-1"},
+                "status": "published",
+            }],
+        }
+        self.assertEqual(
+            _effective_post_status(response, platform="instagram", account_id="ig-ad-1"),
+            "published",
+        )
+        self.assertEqual(
+            _effective_post_status(response, platform="tiktok", account_id="ig-ad-1"),
+            "processing",
+        )
+
+    def test_reconciliation_rejects_non_platform_urls(self):
+        from scripts.reconcile_advertising_social_posts import _public_platform_url
+
+        self.assertEqual(
+            _public_platform_url("https://www.instagram.com/p/ABC/", platform="instagram"),
+            "https://www.instagram.com/p/ABC/",
+        )
+        self.assertEqual(
+            _public_platform_url("https://evil.example/redirect", platform="instagram"),
+            "",
+        )
+        self.assertEqual(
+            _public_platform_url("https://www.instagram.com.attacker.example/p/ABC/", platform="instagram"),
+            "",
+        )
+        self.assertEqual(
+            _public_platform_url("http://www.tiktok.com/@user/video/123", platform="tiktok"),
+            "",
+        )
 
 if __name__ == "__main__":
     unittest.main()
