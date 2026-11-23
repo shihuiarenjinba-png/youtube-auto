@@ -34,3 +34,5 @@ Verify platform status interpretation and strict public URL domain matching.
 Ensure unknown social ledger states stop posting instead of being ignored.
 
 Validate explicit advertising disclosure in generated captions and video cards.
+
+Re-run disclosure tests after newline assertion correction.
