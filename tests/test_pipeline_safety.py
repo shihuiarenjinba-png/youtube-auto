@@ -505,5 +505,31 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(result["account_verification_source"], "original_creation_run_arguments")
         self.assertFalse(result["write_performed"])
 
+
+    def test_social_post_reconciliation_matches_nested_zernio_account_object(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": {
+                        "_id": "ig-ad-1",
+                        "displayName": "Advertising Instagram",
+                    },
+                    "status": "published",
+                    "platformPostId": "native-nested-1",
+                    "platformPostUrl": "https://www.instagram.com/p/NESTED123/",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response,
+            platform="instagram",
+            account_id="ig-ad-1",
+            zernio_post_id="zernio-post-nested",
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["account_verification_source"], "zernio_post_response")
+        self.assertEqual(result["published_url"], "https://www.instagram.com/p/NESTED123/")
+
 if __name__ == "__main__":
     unittest.main()
