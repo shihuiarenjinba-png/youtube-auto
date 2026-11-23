@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -226,3 +229,125 @@ def build_local_review_video(
         "card_count": len(cards),
     })
     return validation
+
+
+
+def write_video_review_bundle(
+    campaign: dict[str, Any],
+    content: dict[str, Any],
+    *,
+    root: Path,
+    cards_dir: Path,
+    video_path: Path,
+    evidence_dir: Path,
+    validation: dict[str, Any],
+) -> Path:
+    """Copy the exact generated video and its source assets into a reviewable bundle."""
+    if content.get("campaign_id") != campaign.get("campaign_id"):
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_CAMPAIGN_MISMATCH")
+
+    screenshots = verify_screenshots(campaign, root)
+    cards = sorted(cards_dir.glob("card-*.png"))
+    if len(screenshots) < 4 or len(cards) != 4:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_EXPECTS_FOUR_CARDS")
+    if not video_path.is_file() or video_path.stat().st_size < 1024:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_VIDEO_MISSING")
+    actual_video_sha = sha256_file(video_path)
+    if actual_video_sha != str(validation.get("video_sha256") or ""):
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_VIDEO_HASH_MISMATCH")
+
+    if evidence_dir.exists() and any(evidence_dir.iterdir()):
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_DIRECTORY_NOT_EMPTY")
+
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    source_dir = evidence_dir / "source-screenshots"
+    card_dir = evidence_dir / "rendered-cards"
+    audio_dir = evidence_dir / "audio"
+    source_dir.mkdir()
+    card_dir.mkdir()
+    audio_dir.mkdir()
+
+    source_assets: list[dict[str, Any]] = []
+    for index, (item, source_path) in enumerate(zip(campaign.get("screenshots") or [], screenshots)):
+        expected_sha = str(item.get("sha256") or "")
+        actual_sha = sha256_file(source_path)
+        if actual_sha != expected_sha:
+            raise AppVideoHold("HOLD_REVIEW_BUNDLE_SOURCE_HASH_MISMATCH")
+        copied_name = f"source-{index + 1:02d}{source_path.suffix.lower()}"
+        shutil.copy2(source_path, source_dir / copied_name)
+        source_assets.append({
+            "campaign_path": str(item.get("path") or ""),
+            "sha256": actual_sha,
+            "bundle_path": f"source-screenshots/{copied_name}",
+            "used_in_video": index < 4,
+            "scene_number": index + 1 if index < 4 else None,
+        })
+
+    rendered_cards: list[dict[str, Any]] = []
+    for index, card_path in enumerate(cards, start=1):
+        copied_name = f"card-{index:02d}.png"
+        shutil.copy2(card_path, card_dir / copied_name)
+        rendered_cards.append({
+            "bundle_path": f"rendered-cards/{copied_name}",
+            "sha256": sha256_file(card_path),
+            "source_campaign_path": str((campaign.get("screenshots") or [])[index - 1]["path"]),
+        })
+
+    video_name = "daymark-ai-review.mp4"
+    shutil.copy2(video_path, evidence_dir / video_name)
+
+    bgm_name = str(validation.get("bgm_name") or "")
+    if not bgm_name:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_NAME_MISSING")
+    bgm_path = (root / "assets" / "bgm" / bgm_name).resolve()
+    try:
+        bgm_path.relative_to((root / "assets" / "bgm").resolve())
+    except ValueError as exc:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_OUTSIDE_ASSET_ROOT") from exc
+    if not bgm_path.is_file():
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_MISSING")
+    shutil.copy2(bgm_path, audio_dir / bgm_path.name)
+
+    evidence = {
+        "schema_version": 1,
+        "review_status": "REVIEW_REQUIRED_NOT_PUBLISHED_BY_PREVIEW_JOB",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source_commit": os.environ.get("GITHUB_SHA") or None,
+        "source_ref": os.environ.get("GITHUB_REF") or None,
+        "campaign_id": str(campaign.get("campaign_id") or ""),
+        "app_id": str(campaign.get("app_id") or ""),
+        "product_name": str(campaign.get("product_name") or ""),
+        "generated_from_source_hash": str(content.get("generated_from_source_hash") or ""),
+        "evidence_hash": str(content.get("evidence_hash") or ""),
+        "generation": {
+            "mode": "screenshot_cards_crossfade_with_local_bgm",
+            "image_generation_api_used": False,
+            "voice_generation_api_used": False,
+            "audio_mode": "local_bgm",
+        },
+        "source_assets": source_assets,
+        "rendered_cards": rendered_cards,
+        "audio": {
+            "bundle_path": f"audio/{bgm_path.name}",
+            "sha256": sha256_file(bgm_path),
+        },
+        "video": {
+            "bundle_path": video_name,
+            "sha256": actual_video_sha,
+            "codec": validation.get("codec"),
+            "width": validation.get("width"),
+            "height": validation.get("height"),
+            "audio_codec": validation.get("audio_codec"),
+            "duration_seconds": validation.get("duration_seconds"),
+        },
+        "publication": {
+            "performed": False,
+            "reason": "This bundle is a preview artifact only. Publishing is a separate approved operation.",
+        },
+    }
+    evidence_path = evidence_dir / "generation-evidence.json"
+    evidence_path.write_text(
+        json.dumps(evidence, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return evidence_path
