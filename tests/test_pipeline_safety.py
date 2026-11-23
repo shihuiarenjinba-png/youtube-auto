@@ -645,7 +645,7 @@ class PipelineSafetyTests(unittest.TestCase):
 
     def test_phase_c_jobs_have_scoped_contents_write_for_the_ledger_only(self):
         workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
-        self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 2)
+        self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 3)
         self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
         self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
 
