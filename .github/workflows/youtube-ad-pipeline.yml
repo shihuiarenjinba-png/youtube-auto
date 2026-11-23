@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/port-proven-uploader
+      - codex/social-post-reconciliation
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
