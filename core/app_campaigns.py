@@ -153,11 +153,70 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         else "Ad | Promotional content"
     )
     disclosure_label = "広告" if str(dataset.get("language") or "").lower() == "ja" else "Ad"
+    requirements = [
+        str(value).strip()
+        for value in dataset.get("system_requirements") or []
+        if str(value).strip()
+    ]
+    compatibility_notice = (
+        "対応環境（Windows PC）：" + "、".join(requirements)
+        if requirements else ""
+    )
+    optional_ai_feature = next(
+        (feature for feature in features if "Ollama" in feature),
+        "",
+    )
+    local_ai_notice = (
+        f"AI補助機能：{optional_ai_feature}"
+        if optional_ai_feature else ""
+    )
+    ai_independence_notice = next(
+        (str(value) for value in dataset.get("use_cases") or [] if "AIなし" in str(value)),
+        "",
+    )
+    store_link_notice = (
+        f"入手先：Microsoft Storeで「{product}」を検索（Windows PC向け）"
+        if cta_url and "apps.microsoft.com/search" in cta_url
+        else "入手先"
+    )
+    video_end_card_lines = []
+    if requirements:
+        video_end_card_lines.append("対応：Windows 10／11（x64）")
+    if optional_ai_feature:
+        video_end_card_lines.append("任意のローカルOllama AI補助")
+    if cta_url:
+        video_end_card_lines.append(f"Microsoft Storeで「{product}」を検索")
+    video_end_card_text = "\n".join(video_end_card_lines)
+
     caption_lines = [disclosure_statement, description, *features[:3]]
+    for notice in (
+        compatibility_notice,
+        local_ai_notice,
+        ai_independence_notice,
+    ):
+        if notice:
+            caption_lines.append(notice)
     if availability_notice:
         caption_lines.append(availability_notice)
     if cta_url:
-        caption_lines.append(cta_url)
+        caption_lines.append(f"{store_link_notice}\n{cta_url}")
+
+    video_script = [
+        product,
+        description,
+        *features[:3],
+        *[
+            value for value in (
+                compatibility_notice,
+                local_ai_notice,
+                ai_independence_notice,
+                store_link_notice,
+            )
+            if value
+        ],
+    ]
+    if cta_url:
+        video_script.append(cta_url)
 
     return {
         "disclosure_statement": disclosure_statement,
@@ -173,7 +232,12 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         "hook": f"{product} — {features[0]}",
         "summary": description,
         "key_features": features[:3],
-        "video_script": [product, description, *features[:3]],
+        "video_script": video_script,
+        "compatibility_notice": compatibility_notice,
+        "local_ai_notice": local_ai_notice,
+        "ai_independence_notice": ai_independence_notice,
+        "store_link_notice": store_link_notice,
+        "video_end_card_text": video_end_card_text,
         "caption": "\n".join(caption_lines),
         "limited_availability": bool(dataset.get("limited_availability")),
         "availability_notice": availability_notice,

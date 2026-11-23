@@ -128,11 +128,16 @@ def render_review_cards(
     product = str(campaign["product_name"])
     summary = str(content.get("summary") or "")
     cta_url = str(content.get("cta_url") or "")
+    end_card_details = "\n".join(
+        str(value).strip()
+        for value in (content.get("video_end_card_text"), cta_url)
+        if str(value or "").strip()
+    )
     cards = [
         ("Windows PCに記録", f"{summary}\n{features[0]}", screenshots[0]),
         ("毎日の習慣も", features[1], screenshots[1]),
         ("振り返りやすく", features[2], screenshots[2]),
-        ("Daymark AI", f"公式情報\n{cta_url}", screenshots[3]),
+        ("対応環境・入手先", end_card_details, screenshots[3]),
     ]
 
     rendered: list[Path] = []

@@ -255,7 +255,18 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(content["disclosure_statement"], "広告｜自社製品の紹介")
         self.assertEqual(content["disclosure_label"], "広告")
         self.assertTrue(content["caption"].startswith("広告｜自社製品の紹介\n"))
+        self.assertIn("対応環境（Windows PC）", content["caption"])
+        self.assertIn("Windows 10またはWindows 11", content["caption"])
+        self.assertIn("Microsoft Edge WebView2 Runtime", content["caption"])
+        self.assertIn("AI補助機能：任意のローカルOllama", content["caption"])
+        self.assertIn("日記、習慣、カレンダー、検索、バックアップはAIなしで利用できます。", content["caption"])
+        self.assertIn("Microsoft Storeで「Daymark AI」を検索（Windows PC向け）", content["caption"])
+        self.assertTrue(content["caption"].endswith(campaign["store_url"]))
+        self.assertIn("Windows 10／11（x64）", content["video_end_card_text"])
+        self.assertIn("任意のローカルOllama AI補助", content["video_end_card_text"])
+        self.assertIn("Microsoft Storeで「Daymark AI」を検索", content["video_end_card_text"])
         video_source = (ROOT / "core" / "app_ad_video.py").read_text(encoding="utf-8")
+        self.assertIn('content.get("video_end_card_text")', video_source)
         self.assertIn('draw.text((862, 82), disclosure_label', video_source)
         self.assertIn('footer_disclosure = str(content.get("disclosure_statement")', video_source)
         self.assertEqual(len(content["source_hashes"]), 3)
@@ -545,8 +556,13 @@ class PipelineSafetyTests(unittest.TestCase):
     def test_historical_post_ledger_contains_both_verified_public_posts(self):
         ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
         self.assertEqual(ledger["schema_version"], 1)
-        self.assertEqual(len(ledger["records"]), 2)
-        by_platform = {row["platform"]: row for row in ledger["records"]}
+        historical = [
+            row for row in ledger["records"]
+            if row.get("origin") == "historical_phase_c_post_reconciled"
+        ]
+        self.assertEqual(len(historical), 2)
+        self.assertEqual(len(ledger["records"]), 3)
+        by_platform = {row["platform"]: row for row in historical}
         for platform, expected_url in (
             ("instagram", "https://www.instagram.com/reel/DgA8UtNikNx/"),
             ("tiktok", "https://www.tiktok.com/@nice_a17/video/7710703558940790017"),
@@ -556,6 +572,14 @@ class PipelineSafetyTests(unittest.TestCase):
             self.assertTrue(row["published_url_verified"])
             self.assertEqual(row["published_url"], expected_url)
             self.assertTrue(row["social_post_created"])
+
+        new_post = next(
+            row for row in ledger["records"]
+            if row.get("published_url") == "https://www.instagram.com/reel/DgFxrMlkffI/"
+        )
+        self.assertEqual(new_post["status"], "PUBLISHED")
+        self.assertTrue(new_post["published_url_verified"])
+        self.assertTrue(new_post["social_post_created"])
 
     def test_persistent_ledger_blocks_same_media_for_same_advertising_account(self):
         ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
@@ -567,11 +591,11 @@ class PipelineSafetyTests(unittest.TestCase):
             platform="instagram",
             account_id=instagram["account_id"],
             idempotency_key_sha256=instagram["idempotency_key_sha256"],
-            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 11, 23, 23, 59, tzinfo=timezone.utc),
         )
         self.assertTrue(state["duplicate_found"])
-        self.assertEqual(state["posts_today"], 0)
-        self.assertEqual(state["last_posted_at"].date().isoformat(), "2026-11-21")
+        self.assertEqual(state["posts_today"], 1)
+        self.assertEqual(state["last_posted_at"].date().isoformat(), "2026-11-23")
 
     def test_persistent_ledger_reservation_is_committed_before_any_post_write(self):
         empty_ledger = {"schema_version": 1, "records": []}
