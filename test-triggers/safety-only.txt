@@ -14,3 +14,5 @@ Validate redacted Zernio post response diagnostics.
 Verify nested Zernio account ID resolution.
 
 Validate persistent ledger reservation and duplicate prevention.
+
+Verify branch-level concurrency for serialized social ledger writes.
