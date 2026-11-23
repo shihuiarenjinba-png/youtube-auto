@@ -1,2 +1,2 @@
-No-social-write verification of GitHub Actions Contents API write permission for the persistent advertising ledger.
-This trigger must not upload media or publish to any platform.
+Safety-only regression: verify the Daymark preview bundle and explicit publication approval markers.
+No social ledger write or external post is authorized.
