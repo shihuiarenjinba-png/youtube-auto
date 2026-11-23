@@ -4,3 +4,5 @@ No new media upload or social post is permitted.
 Second read-only lookup after account-provenance handling fix.
 
 Inspect redacted account identifier fields from existing post GET response.
+
+Retry read-only Instagram reconciliation with nested account object extraction.
