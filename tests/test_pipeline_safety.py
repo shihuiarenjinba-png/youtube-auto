@@ -410,6 +410,7 @@ class PipelineSafetyTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
         self.assertEqual(result["platform_post_id"], "native-123")
+        self.assertEqual(result["account_verification_source"], "zernio_post_response")
         self.assertEqual(result["published_url"], "https://www.instagram.com/reel/ABC123/")
         self.assertTrue(result["public_url_confirmed"])
         self.assertTrue(result["read_only"])
@@ -476,6 +477,33 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertNotIn("create_video_post_now", runner)
         self.assertNotIn("requests.post", runner)
         self.assertIn('"write_performed": False', runner)
+
+
+    def test_post_response_account_id_omission_requires_explicit_historical_provenance(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "status": "published",
+                    "platformPostId": "native-456",
+                    "platformPostUrl": "https://www.instagram.com/p/XYZ456/",
+                }],
+            }
+        }
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_POST_ACCOUNT_ID_NOT_RETURNED"):
+            build_reconciliation_result(
+                response, platform="instagram", account_id="ig-ad-1", zernio_post_id="zernio-post-4"
+            )
+        result = build_reconciliation_result(
+            response,
+            platform="instagram",
+            account_id="ig-ad-1",
+            zernio_post_id="zernio-post-4",
+            allow_account_id_omission=True,
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["account_verification_source"], "original_creation_run_arguments")
+        self.assertFalse(result["write_performed"])
 
 if __name__ == "__main__":
     unittest.main()
