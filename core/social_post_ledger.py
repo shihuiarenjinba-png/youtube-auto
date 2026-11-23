@@ -101,6 +101,8 @@ def ledger_policy_state(
         if not isinstance(record, dict):
             raise SocialLedgerHold("HOLD_SOCIAL_LEDGER_RECORD_INVALID")
         status = str(record.get("status") or "").upper()
+        if status not in ACTIVE_STATUSES and status != "ABORTED_BEFORE_POST":
+            raise SocialLedgerHold("HOLD_SOCIAL_LEDGER_STATUS_UNKNOWN")
         if status not in ACTIVE_STATUSES:
             continue
         same_target = (
