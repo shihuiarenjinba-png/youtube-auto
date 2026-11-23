@@ -7,6 +7,7 @@ on:
       - codex/social-post-reconciliation
       - codex/advertising-disclosure-ready
       - codex/daymark-truthful-caption
+      - codex/daymark-review-video-evidence
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
@@ -330,6 +331,43 @@ jobs:
           SOCIAL_LEDGER_TOKEN: ${{ github.token }}
         run: python scripts/check_social_post_ledger.py
 
+  daymark-video-review-preview:
+    needs: safety-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/daymark-review-video-evidence' && contains(github.event.head_commit.message, '[daymark-review-preview]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install local rendering dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Render preview and package source-to-video evidence (no publishing)
+        run: >-
+          python scripts/preview_app_campaign_video.py
+          --dataset data/app_campaigns/daymark-ai-jp.json
+          --evidence-dir "$RUNNER_TEMP/daymark-ai-review-evidence"
+      - name: Retain review bundle for seven days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daymark-ai-video-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/daymark-ai-review-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove local review bundle after artifact upload
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/daymark-ai-review-evidence"
+          test ! -e "$RUNNER_TEMP/daymark-ai-review-evidence"
+
   phase-b-daymark-media-transfer:
     needs: safety-tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-b]')
@@ -361,7 +399,7 @@ jobs:
 
   phase-c-daymark-instagram-controlled-post:
     needs: safety-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-instagram]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-instagram-approved]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -395,7 +433,7 @@ jobs:
 
   phase-c-daymark-tiktok-controlled-post:
     needs: safety-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-tiktok]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-tiktok-approved]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
