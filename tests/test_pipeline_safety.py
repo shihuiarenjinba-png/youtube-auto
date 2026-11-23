@@ -835,5 +835,75 @@ class PipelineSafetyTests(unittest.TestCase):
             "2026-11-23T00:02:00+00:00",
         )
 
+
+    def test_aborted_reservation_with_same_idempotency_key_can_be_reserved_again(self):
+        old_record = {
+            "idempotency_key_sha256": "f" * 64,
+            "campaign_id": "ledger-retry-test",
+            "platform": "instagram",
+            "account_id": "ig-retry-account",
+            "video_sha256": "a" * 64,
+            "status": "ABORTED_BEFORE_POST",
+            "reserved_at": "2026-11-23T10:00:00+00:00",
+            "updated_at": "2026-11-23T10:01:00+00:00",
+        }
+        stored = {"schema_version": 1, "records": [old_record]}
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        record = {
+            "idempotency_key_sha256": "f" * 64,
+            "campaign_id": "ledger-retry-test",
+            "app_id": "retry-app",
+            "product_name": "Retry App",
+            "market": "JP",
+            "language": "ja",
+            "platform": "instagram",
+            "account_id": "ig-retry-account",
+            "source_hash": "b" * 64,
+            "evidence_hash": "c" * 64,
+            "video_sha256": "a" * 64,
+            "store_url": "https://example.com",
+            "media_upload_performed": False,
+            "social_post_created": False,
+        }
+        campaign = {
+            "status": "ACTIVE",
+            "official_url": "https://example.com",
+            "source_urls": ["https://example.com"],
+            "store_url": "https://example.com",
+            "cta_url": "https://example.com",
+            "market": "JP",
+            "grounding_status": "PASS",
+        }
+        account = {"purpose": "advertising", "market": "JP", "platform": "instagram"}
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch(
+            "core.social_post_ledger.requests.get", return_value=FakeResponse()
+        ), patch(
+            "core.social_post_ledger.requests.put", return_value=FakeResponse()
+        ) as put:
+            reserved = ledger.reserve_post(
+                record=record,
+                campaign=campaign,
+                account=account,
+                platform="instagram",
+                capacity_ok=True,
+                now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(reserved["status"], "RESERVED")
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(len(persisted["records"]), 1)
+        self.assertEqual(persisted["records"][0]["status"], "RESERVED")
+        self.assertEqual(persisted["records"][0]["idempotency_key_sha256"], "f" * 64)
+
 if __name__ == "__main__":
     unittest.main()
