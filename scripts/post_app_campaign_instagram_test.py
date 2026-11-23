@@ -60,7 +60,7 @@ def _platform_failure(value: dict[str, Any]) -> str:
 
 def _published_url(value: dict[str, Any]) -> str:
     candidates = []
-    for key in ("url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
+    for key in ("platformPostUrl", "url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
         if value.get(key):
             candidates.append(str(value[key]))
     platforms = value.get("platforms")
@@ -74,6 +74,21 @@ def _published_url(value: dict[str, Any]) -> str:
         if url.startswith("https://") and "media.zernio.com" not in url:
             return url
     return ""
+
+
+def _platform_post_id(value: dict[str, Any], *, platform: str, account_id: str) -> str:
+    platforms = value.get("platforms")
+    if not isinstance(platforms, list):
+        return ""
+    matches = [
+        row for row in platforms
+        if isinstance(row, dict)
+        and str(row.get("platform") or "").lower() == platform
+        and str(row.get("accountId") or row.get("account_id") or "") == account_id
+    ]
+    if len(matches) != 1:
+        return ""
+    return str(matches[0].get("platformPostId") or "")
 
 
 def main() -> int:
@@ -187,6 +202,7 @@ def main() -> int:
             "platform": args.platform,
             "account_id": args.account_id,
             "post_id": pid,
+            "platform_post_id": _platform_post_id(current, platform=args.platform, account_id=args.account_id) or _platform_post_id(post, platform=args.platform, account_id=args.account_id),
             "post_status": _status(current) or _status(post) or "created",
             "published_url": _published_url(current) or _published_url(post),
             "store_url": campaign.get("store_url") or "",
