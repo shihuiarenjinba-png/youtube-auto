@@ -28,3 +28,5 @@ Verify manual resolution of SUBMISSION_UNKNOWN and publication-time quota handli
 Verify aborted reservation reuse without creating a social post.
 
 Verify external Phase B/C writes remain disabled on the PR branch.
+
+Verify platform status interpretation and strict public URL domain matching.
