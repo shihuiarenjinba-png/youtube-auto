@@ -45,7 +45,12 @@ ALLOWED_TRANSITIONS = {
         "FAILED",
     },
     "CREATED": {"CREATED", "SUBMISSION_UNKNOWN", "PUBLISHED", "FAILED"},
-    "SUBMISSION_UNKNOWN": {"SUBMISSION_UNKNOWN"},
+    "SUBMISSION_UNKNOWN": {
+        "SUBMISSION_UNKNOWN",
+        "CREATED",
+        "PUBLISHED",
+        "FAILED",
+    },
     "PUBLISHED": {"PUBLISHED"},
     "FAILED": {"FAILED"},
     "ABORTED_BEFORE_POST": {"ABORTED_BEFORE_POST"},
@@ -69,7 +74,7 @@ def _parse_timestamp(value: Any) -> datetime | None:
 
 
 def _timestamp_for_record(record: dict[str, Any]) -> datetime | None:
-    for key in ("reserved_at", "published_at", "updated_at"):
+    for key in ("published_at", "updated_at", "reserved_at"):
         parsed = _parse_timestamp(record.get(key))
         if parsed is not None:
             return parsed
