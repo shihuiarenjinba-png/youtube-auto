@@ -237,6 +237,7 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         "local_ai_notice": local_ai_notice,
         "ai_independence_notice": ai_independence_notice,
         "store_link_notice": store_link_notice,
+        "video_end_card_text": video_end_card_text,
         "caption": "\n".join(caption_lines),
         "limited_availability": bool(dataset.get("limited_availability")),
         "availability_notice": availability_notice,
