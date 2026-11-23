@@ -215,6 +215,30 @@ class GitHubSocialPostLedger:
         if response.status_code != 200:
             raise SocialLedgerHold(f"HOLD_SOCIAL_LEDGER_WRITE_HTTP_{response.status_code}")
 
+    def verify_writable(self) -> dict[str, Any]:
+        """Read and safely update ledger metadata to verify GitHub Contents write access."""
+        ledger, sha = self._read()
+        verified_at = datetime.now(timezone.utc).isoformat()
+        ledger["last_verified_at"] = verified_at
+        self._write(
+            ledger,
+            sha,
+            "Verify advertising social post ledger write access without posting [no-social-write]",
+        )
+        return {
+            "status": "SOCIAL_POST_LEDGER_WRITE_OK",
+            "repository": self.repository,
+            "branch": self.branch,
+            "ledger_path": self.path,
+            "record_count": len(ledger["records"]),
+            "last_verified_at": verified_at,
+            "repository_write_performed": True,
+            "media_upload_performed": False,
+            "social_post_performed": False,
+            "youtube_write_performed": False,
+            "zodiac_write_performed": False,
+        }
+
     def reserve_post(
         self,
         *,
