@@ -57,7 +57,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: advertising-safe-${{ inputs.market }}-${{ inputs.mode }}
+  group: advertising-social-ledger-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
