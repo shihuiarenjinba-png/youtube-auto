@@ -280,13 +280,21 @@ class GitHubSocialPostLedger:
         record["status"] = "RESERVED"
         record["reserved_at"] = now.astimezone(timezone.utc).isoformat()
         record["updated_at"] = record["reserved_at"]
-        if any(
-            isinstance(existing, dict)
+        existing_matches = [
+            (index, existing)
+            for index, existing in enumerate(ledger["records"])
+            if isinstance(existing, dict)
             and existing.get("idempotency_key_sha256") == record["idempotency_key_sha256"]
-            for existing in ledger["records"]
-        ):
-            raise SocialLedgerHold("HOLD_SOCIAL_LEDGER_IDEMPOTENCY_KEY_EXISTS")
-        ledger["records"].append(record)
+        ]
+        if len(existing_matches) > 1:
+            raise SocialLedgerHold("HOLD_SOCIAL_LEDGER_IDEMPOTENCY_KEY_NOT_UNIQUE")
+        if existing_matches:
+            index, existing = existing_matches[0]
+            if str(existing.get("status") or "").upper() != "ABORTED_BEFORE_POST":
+                raise SocialLedgerHold("HOLD_SOCIAL_LEDGER_IDEMPOTENCY_KEY_EXISTS")
+            ledger["records"][index] = record
+        else:
+            ledger["records"].append(record)
         self._write(
             ledger,
             sha,
