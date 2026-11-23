@@ -179,6 +179,14 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         if cta_url and "apps.microsoft.com/search" in cta_url
         else "入手先"
     )
+    video_end_card_lines = []
+    if requirements:
+        video_end_card_lines.append("対応：Windows 10／11（x64）")
+    if optional_ai_feature:
+        video_end_card_lines.append("任意のローカルOllama AI補助")
+    if cta_url:
+        video_end_card_lines.append(f"Microsoft Storeで「{product}」を検索")
+    video_end_card_text = "\n".join(video_end_card_lines)
 
     caption_lines = [disclosure_statement, description, *features[:3]]
     for notice in (
