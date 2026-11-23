@@ -339,6 +339,8 @@ jobs:
     needs: safety-tests
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-c-instagram]')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v7
@@ -356,6 +358,7 @@ jobs:
       - name: Post one grounded Daymark test to one JP Instagram account
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          SOCIAL_LEDGER_TOKEN: ${{ github.token }}
         run: >-
           python scripts/post_app_campaign_instagram_test.py
           --dataset data/app_campaigns/daymark-ai-jp.json
@@ -370,6 +373,8 @@ jobs:
     needs: safety-tests
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-c-tiktok]')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v7
@@ -387,6 +392,7 @@ jobs:
       - name: Post one grounded Daymark test to one JP TikTok account
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          SOCIAL_LEDGER_TOKEN: ${{ github.token }}
         run: >-
           python scripts/post_app_campaign_instagram_test.py
           --dataset data/app_campaigns/daymark-ai-jp.json
