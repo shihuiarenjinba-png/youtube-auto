@@ -51,6 +51,25 @@
       "media_upload_performed": true,
       "social_post_created": true,
       "origin": "historical_phase_c_post_reconciled"
+    },
+    {
+      "idempotency_key_sha256": "e11a5b085f94c04ca80dad4c04ed31599db40499711c93c4a2869adccc924653",
+      "campaign_id": "daymark-ai-jp-20261120",
+      "app_id": "OkinawaDesktopTools.DaymarkAI",
+      "product_name": "Daymark AI",
+      "market": "JP",
+      "language": "ja",
+      "platform": "instagram",
+      "account_id": "6a9799d277555aae01bd18c1",
+      "source_hash": "316c0a57240aeab932f0c917a6ef5ea804a7e516acddf205fa848f35b43784c3",
+      "evidence_hash": "a95201a5afdeaf384291e8848c5d38cd374627b1dd8ad3251f860bcd3719423a",
+      "video_sha256": "0626e8379771b57656afba9613827a7d4e327462a5658679849aed9a96d444b0",
+      "store_url": "https://apps.microsoft.com/search?query=Daymark%20AI",
+      "media_upload_performed": false,
+      "social_post_created": false,
+      "status": "RESERVED",
+      "reserved_at": "2026-11-23T16:08:58.618611+00:00",
+      "updated_at": "2026-11-23T16:08:58.618611+00:00"
     }
   ],
   "last_verified_at": "2026-11-23T15:01:01.807578+00:00"
