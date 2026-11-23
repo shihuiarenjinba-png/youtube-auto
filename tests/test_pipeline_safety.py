@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import hashlib
+import contextlib
+import io
 import subprocess
 import sys
 import unittest
@@ -87,6 +89,76 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("ADVERTISING_OAUTH_DISCOVERY_PASS", runner)
         self.assertIn('"write_performed": False', runner)
         self.assertNotIn("videos().insert", runner)
+
+    def test_us_discovery_execution_and_zodiac_hold(self):
+        from core.read_only_youtube import ReadOnlyChannelIdentity
+        from scripts import audit_advertising_youtube as audit
+
+        output = io.StringIO()
+        with patch.object(audit, "ReadOnlyYouTubeIdentityClient") as client_class, \
+             patch.object(sys, "argv", ["audit_advertising_youtube.py", "--market", "us", "--discover"]), \
+             contextlib.redirect_stdout(output):
+            client_class.return_value.check.return_value = ReadOnlyChannelIdentity("UCexampleAdvertising", "sleepdeep.knowledge")
+            self.assertEqual(audit.main(), 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["status"], "ADVERTISING_OAUTH_DISCOVERY_PASS")
+        self.assertEqual(result["actual_channel_id"], "UCexampleAdvertising")
+        self.assertEqual(result["actual_channel_title"], "sleepdeep.knowledge")
+        self.assertFalse(result["identity_pinned"])
+        self.assertFalse(result["write_performed"])
+
+        for zodiac_id in ZODIAC_IDS:
+            with self.subTest(zodiac_id=zodiac_id), \
+                 patch.object(audit, "ReadOnlyYouTubeIdentityClient") as client_class, \
+                 patch.object(sys, "argv", ["audit_advertising_youtube.py", "--market", "us", "--discover"]):
+                client_class.return_value.check.return_value = ReadOnlyChannelIdentity(zodiac_id, "zodiac")
+                with self.assertRaisesRegex(RuntimeError, "HOLD_ZODIAC_OAUTH_PRESENTED_TO_ADVERTISING_LANE"):
+                    audit.main()
+
+    def test_us_normal_check_holds_until_expected_channel_is_pinned(self):
+        from scripts import audit_advertising_youtube as audit
+
+        with patch.object(audit, "ReadOnlyYouTubeIdentityClient") as client_class, \
+             patch.object(sys, "argv", ["audit_advertising_youtube.py", "--market", "us"]):
+            with self.assertRaisesRegex(RuntimeError, "HOLD_US_AD_CHANNEL_ID_DISCOVERY_REQUIRED"):
+                audit.main()
+            client_class.assert_not_called()
+
+    def test_discovery_is_us_only(self):
+        from scripts import audit_advertising_youtube as audit
+
+        with patch.object(audit, "ReadOnlyYouTubeIdentityClient") as client_class, \
+             patch.object(sys, "argv", ["audit_advertising_youtube.py", "--market", "jp", "--discover"]):
+            with self.assertRaisesRegex(RuntimeError, "HOLD_ADVERTISING_DISCOVERY_US_ONLY"):
+                audit.main()
+            client_class.assert_not_called()
+
+    def test_jp_identity_check_requires_exact_channel_id(self):
+        from core.read_only_youtube import ReadOnlyChannelIdentity
+        from scripts import audit_advertising_youtube as audit
+
+        for channel_id, expected_status in (
+            ("UC4n0nR7IBwN1KKr9T32RP_w", "ADVERTISING_OAUTH_IDENTITY_PASS"),
+            ("UCdifferent", "HOLD_ADVERTISING_CHANNEL_ID_MISMATCH"),
+        ):
+            with self.subTest(channel_id=channel_id), \
+                 patch.object(audit, "ReadOnlyYouTubeIdentityClient") as client_class, \
+                 patch.object(sys, "argv", ["audit_advertising_youtube.py", "--market", "jp"]), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                client_class.return_value.check.return_value = ReadOnlyChannelIdentity(channel_id, "ラッスン17")
+                if channel_id == "UC4n0nR7IBwN1KKr9T32RP_w":
+                    self.assertEqual(audit.main(), 0)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, expected_status):
+                        audit.main()
+
+    def test_identity_runner_never_prints_credentials(self):
+        source = (ROOT / "scripts" / "audit_advertising_youtube.py").read_text(encoding="utf-8")
+        identity = (ROOT / "core" / "read_only_youtube.py").read_text(encoding="utf-8")
+        self.assertNotIn("print(", identity)
+        self.assertNotIn("json.dump", identity)
+        self.assertIn('"https://www.googleapis.com/auth/youtube.readonly"', identity)
+        self.assertNotIn("echo", source.lower())
 
     def test_legacy_pipeline_entry_is_fail_closed(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts" / "run_ad_pipeline.py")], capture_output=True, text=True)

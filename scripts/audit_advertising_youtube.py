@@ -33,6 +33,9 @@ def main() -> int:
     parser.add_argument("--discover", action="store_true", help="Read actual channel identity even when expected_channel_id is not yet pinned")
     args = parser.parse_args()
 
+    if args.discover and args.market != "us":
+        raise RuntimeError("HOLD_ADVERTISING_DISCOVERY_US_ONLY")
+
     lane, zodiac_ids = load_config(args.market)
     expected = str(lane.get("expected_channel_id") or "").strip()
     if not expected and not args.discover:
