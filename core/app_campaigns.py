@@ -147,13 +147,21 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
             or "提供数に上限があります。"
         ).strip()
 
-    caption_lines = [description, *features[:3]]
+    disclosure_statement = (
+        "広告｜自社製品の紹介"
+        if str(dataset.get("language") or "").lower() == "ja"
+        else "Ad | Promotional content"
+    )
+    disclosure_label = "広告" if str(dataset.get("language") or "").lower() == "ja" else "Ad"
+    caption_lines = [disclosure_statement, description, *features[:3]]
     if availability_notice:
         caption_lines.append(availability_notice)
     if cta_url:
         caption_lines.append(cta_url)
 
     return {
+        "disclosure_statement": disclosure_statement,
+        "disclosure_label": disclosure_label,
         "campaign_id": dataset["campaign_id"],
         "app_id": dataset["app_id"],
         "market": dataset["market"],
