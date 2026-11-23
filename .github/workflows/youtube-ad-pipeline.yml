@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - codex/port-proven-uploader
+      - codex/social-post-reconciliation
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
       - test-triggers/phase-c-tiktok.txt
       - test-triggers/safety-only.txt
+      - test-triggers/ledger-write-check.txt
+      - test-triggers/reconcile-instagram.txt
+      - test-triggers/reconcile-tiktok.txt
   workflow_dispatch:
     inputs:
       market:
@@ -27,6 +31,8 @@ on:
           - rag-dry-run
           - app-campaign-rag-dry-run
           - social-check
+          - social-post-reconcile
+          - social-ledger-check
       campaign_id:
         description: "Required only for rag-dry-run"
         required: false
@@ -35,12 +41,25 @@ on:
         description: "Public HTTPS source; required only for rag-dry-run"
         required: false
         type: string
+      social_platform:
+        description: "Platform for read-only reconciliation of an existing social post"
+        required: false
+        type: choice
+        options: [instagram, tiktok]
+      social_account_id:
+        description: "Existing advertising account ID for the selected platform"
+        required: false
+        type: string
+      social_post_id:
+        description: "Existing Zernio post ID; read-only lookup only"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: advertising-safe-${{ inputs.market }}-${{ inputs.mode }}
+  group: advertising-social-ledger-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -192,9 +211,126 @@ jobs:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
         run: python scripts/check_social_accounts.py --language en
 
+
+
+  social-jp-instagram-historical-reconcile:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[reconcile-instagram]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Read-only lookup of the existing JP Instagram Daymark post
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform instagram
+          --account-id 6a9799d277555aae01bd18c1
+          --post-id 6b01ebac9cb6859183df64b6
+          --allow-account-id-omission
+
+  social-jp-tiktok-historical-reconcile:
+    needs: safety-tests
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[reconcile-tiktok]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Read-only lookup of the existing JP TikTok Daymark post
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform tiktok
+          --account-id 6a97712377555aae01bbe410
+          --post-id 6b01ec79154e1268344ff4eb
+          --allow-account-id-omission
+
+  social-jp-post-reconcile:
+    needs: safety-tests
+    if: inputs.mode == 'social-post-reconcile' && inputs.market == 'jp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Reconcile one existing JP social post without writing
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          ZERNIO_API_KEY_2: ${{ secrets.ZERNIO_API_KEY_JP_2 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform "${{ inputs.social_platform }}"
+          --account-id "${{ inputs.social_account_id }}"
+          --post-id "${{ inputs.social_post_id }}"
+
+  social-us-post-reconcile:
+    needs: safety-tests
+    if: inputs.mode == 'social-post-reconcile' && inputs.market == 'us'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Reconcile one existing US social post without writing
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language en
+          --platform "${{ inputs.social_platform }}"
+          --account-id "${{ inputs.social_account_id }}"
+          --post-id "${{ inputs.social_post_id }}"
+
+  social-ledger-write-check:
+    needs: safety-tests
+    if: inputs.mode == 'social-ledger-check' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ledger-write-check]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Verify ledger read and write access only; no external posts
+        env:
+          SOCIAL_LEDGER_TOKEN: ${{ github.token }}
+        run: python scripts/check_social_post_ledger.py
+
   phase-b-daymark-media-transfer:
     needs: safety-tests
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-b]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-b]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -223,8 +359,10 @@ jobs:
 
   phase-c-daymark-instagram-controlled-post:
     needs: safety-tests
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-c-instagram]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-instagram]')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v7
@@ -242,6 +380,7 @@ jobs:
       - name: Post one grounded Daymark test to one JP Instagram account
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          SOCIAL_LEDGER_TOKEN: ${{ github.token }}
         run: >-
           python scripts/post_app_campaign_instagram_test.py
           --dataset data/app_campaigns/daymark-ai-jp.json
@@ -254,8 +393,10 @@ jobs:
 
   phase-c-daymark-tiktok-controlled-post:
     needs: safety-tests
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase-c-tiktok]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/port-proven-uploader' && contains(github.event.head_commit.message, '[phase-c-tiktok]')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v7
@@ -273,6 +414,7 @@ jobs:
       - name: Post one grounded Daymark test to one JP TikTok account
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          SOCIAL_LEDGER_TOKEN: ${{ github.token }}
         run: >-
           python scripts/post_app_campaign_instagram_test.py
           --dataset data/app_campaigns/daymark-ai-jp.json

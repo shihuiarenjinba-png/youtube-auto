@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+from datetime import datetime, timezone
 import json
 import hashlib
 import contextlib
@@ -20,6 +22,13 @@ from core.advertising_rag import (
 from core.app_campaigns import build_grounded_dataset, generate_app_ad_content, load_campaign
 from core.app_ad_video import AppVideoHold, verify_screenshots
 from core.social_posting_policy import content_fingerprint, choose_round_robin, validate_preflight
+from core.social_post_ledger import GitHubSocialPostLedger, SocialLedgerHold, ledger_policy_state
+from scripts.reconcile_advertising_social_posts import (  # noqa: E402
+    ReconciliationHold,
+    build_reconciliation_result,
+    resolve_advertising_account,
+)
+from scripts.post_app_campaign_instagram_test import _effective_post_status  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -342,6 +351,8 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn('choices=["instagram", "tiktok"]', source)
         self.assertIn("HOLD_CONTROLLED_ACCOUNT_NOT_EXACTLY_ONE", source)
         self.assertIn("idempotency_key(", source)
+        self.assertIn("platformPostUrl", source)
+        self.assertIn("platform_post_id", source)
         self.assertNotIn("videos().insert", source)
         self.assertIn('"youtube_write_performed": False', source)
         self.assertIn('"zodiac_write_performed": False', source)
@@ -382,6 +393,587 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(config["write_policy"], "DENY_ALL_WRITES")
         self.assertTrue(all(lane["schedule"] == "DISABLED" for lane in config["languages"].values()))
 
+
+
+    def test_social_post_reconciliation_extracts_public_url_and_native_id(self):
+        response = {
+            "post": {
+                "status": "published",
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": "ig-ad-1",
+                    "status": "published",
+                    "platformPostId": "native-123",
+                    "platformPostUrl": "https://www.instagram.com/reel/ABC123/",
+                    "publishedAt": "2026-11-21T19:07:26Z",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response, platform="instagram", account_id="ig-ad-1", zernio_post_id="zernio-post-1"
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["platform_post_id"], "native-123")
+        self.assertEqual(result["account_verification_source"], "zernio_post_response")
+        self.assertEqual(result["published_url"], "https://www.instagram.com/reel/ABC123/")
+        self.assertTrue(result["public_url_confirmed"])
+        self.assertTrue(result["read_only"])
+        self.assertFalse(result["write_performed"])
+
+    def test_tiktok_published_without_resolved_url_is_reported_as_pending(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "tiktok",
+                    "accountId": "tt-ad-1",
+                    "status": "published",
+                    "platformPostId": "",
+                    "publishedUrl": "",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response, platform="tiktok", account_id="tt-ad-1", zernio_post_id="zernio-post-2"
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_PENDING")
+        self.assertFalse(result["public_url_confirmed"])
+        self.assertFalse(result["write_performed"])
+
+    def test_social_post_reconciliation_rejects_wrong_platform_or_account(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": "another-account",
+                    "status": "published",
+                    "platformPostUrl": "https://www.instagram.com/p/ABC123/",
+                }],
+            }
+        }
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_POST_ACCOUNT_PLATFORM_MISMATCH"):
+            build_reconciliation_result(
+                response, platform="instagram", account_id="expected-account", zernio_post_id="zernio-post-3"
+            )
+
+    def test_social_reconciliation_account_resolution_is_advertising_scoped(self):
+        config = json.loads((ROOT / "config" / "social_lanes.json").read_text(encoding="utf-8"))
+        account = resolve_advertising_account(
+            config, language="ja", platform="instagram", account_id="6a9799d277555aae01bd18c1"
+        )
+        self.assertEqual(account["market"], "JP")
+        self.assertEqual(account["credential_env"], "ZERNIO_API_KEY_1")
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_ACCOUNT_NOT_EXACTLY_ONE"):
+            resolve_advertising_account(
+                config, language="ja", platform="instagram", account_id="not-an-ad-account"
+            )
+
+    def test_social_reconciliation_workflow_is_read_only_and_market_scoped(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "reconcile_advertising_social_posts.py").read_text(encoding="utf-8")
+        self.assertIn("social-post-reconcile", workflow)
+        self.assertIn("social-jp-post-reconcile", workflow)
+        self.assertIn("social-us-post-reconcile", workflow)
+        self.assertIn("social-jp-instagram-historical-reconcile", workflow)
+        self.assertIn("social-jp-tiktok-historical-reconcile", workflow)
+        self.assertIn("[reconcile-instagram]", workflow)
+        self.assertIn("[reconcile-tiktok]", workflow)
+        self.assertIn("client.get_post(args.post_id)", runner)
+        self.assertNotIn("create_video_post_now", runner)
+        self.assertNotIn("requests.post", runner)
+        self.assertIn('"write_performed": False', runner)
+
+
+    def test_post_response_account_id_omission_requires_explicit_historical_provenance(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "status": "published",
+                    "platformPostId": "native-456",
+                    "platformPostUrl": "https://www.instagram.com/p/XYZ456/",
+                }],
+            }
+        }
+        with self.assertRaisesRegex(ReconciliationHold, "HOLD_POST_ACCOUNT_ID_NOT_RETURNED"):
+            build_reconciliation_result(
+                response, platform="instagram", account_id="ig-ad-1", zernio_post_id="zernio-post-4"
+            )
+        result = build_reconciliation_result(
+            response,
+            platform="instagram",
+            account_id="ig-ad-1",
+            zernio_post_id="zernio-post-4",
+            allow_account_id_omission=True,
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["account_verification_source"], "original_creation_run_arguments")
+        self.assertFalse(result["write_performed"])
+
+
+    def test_social_post_reconciliation_matches_nested_zernio_account_object(self):
+        response = {
+            "post": {
+                "platforms": [{
+                    "platform": "instagram",
+                    "accountId": {
+                        "_id": "ig-ad-1",
+                        "displayName": "Advertising Instagram",
+                    },
+                    "status": "published",
+                    "platformPostId": "native-nested-1",
+                    "platformPostUrl": "https://www.instagram.com/p/NESTED123/",
+                }],
+            }
+        }
+        result = build_reconciliation_result(
+            response,
+            platform="instagram",
+            account_id="ig-ad-1",
+            zernio_post_id="zernio-post-nested",
+        )
+        self.assertEqual(result["status"], "SOCIAL_POST_PUBLISHED_URL_CONFIRMED")
+        self.assertEqual(result["account_verification_source"], "zernio_post_response")
+        self.assertEqual(result["published_url"], "https://www.instagram.com/p/NESTED123/")
+
+
+    def test_historical_post_ledger_contains_both_verified_public_posts(self):
+        ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        self.assertEqual(ledger["schema_version"], 1)
+        self.assertEqual(len(ledger["records"]), 2)
+        by_platform = {row["platform"]: row for row in ledger["records"]}
+        for platform, expected_url in (
+            ("instagram", "https://www.instagram.com/reel/DgA8UtNikNx/"),
+            ("tiktok", "https://www.tiktok.com/@nice_a17/video/7710703558940790017"),
+        ):
+            row = by_platform[platform]
+            self.assertEqual(row["status"], "PUBLISHED")
+            self.assertTrue(row["published_url_verified"])
+            self.assertEqual(row["published_url"], expected_url)
+            self.assertTrue(row["social_post_created"])
+
+    def test_persistent_ledger_blocks_same_media_for_same_advertising_account(self):
+        ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        instagram = next(row for row in ledger["records"] if row["platform"] == "instagram")
+        state = ledger_policy_state(
+            ledger,
+            campaign_id=instagram["campaign_id"],
+            video_sha256=instagram["video_sha256"],
+            platform="instagram",
+            account_id=instagram["account_id"],
+            idempotency_key_sha256=instagram["idempotency_key_sha256"],
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertTrue(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 0)
+        self.assertEqual(state["last_posted_at"].date().isoformat(), "2026-11-21")
+
+    def test_persistent_ledger_reservation_is_committed_before_any_post_write(self):
+        empty_ledger = {"schema_version": 1, "records": []}
+        encoded = base64.b64encode(json.dumps(empty_ledger).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def __init__(self, payload):
+                self.payload = payload
+
+            def json(self):
+                return self.payload
+
+        record = {
+            "idempotency_key_sha256": "a" * 64,
+            "campaign_id": "ledger-test",
+            "app_id": "test-app",
+            "product_name": "Test App",
+            "market": "JP",
+            "language": "ja",
+            "platform": "instagram",
+            "account_id": "ig-test-account",
+            "source_hash": "b" * 64,
+            "evidence_hash": "c" * 64,
+            "video_sha256": "d" * 64,
+            "store_url": "https://example.com",
+            "media_upload_performed": False,
+            "social_post_created": False,
+        }
+        campaign = {
+            "status": "ACTIVE",
+            "official_url": "https://example.com",
+            "source_urls": ["https://example.com"],
+            "store_url": "https://example.com",
+            "cta_url": "https://example.com",
+            "market": "JP",
+            "grounding_status": "PASS",
+        }
+        account = {"purpose": "advertising", "market": "JP", "platform": "instagram"}
+        ledger = GitHubSocialPostLedger(
+            token="test-token",
+            repository="owner/repo",
+            branch="test-branch",
+        )
+        with patch(
+            "core.social_post_ledger.requests.get",
+            return_value=FakeResponse({"sha": "old-sha", "content": encoded}),
+        ), patch(
+            "core.social_post_ledger.requests.put",
+            return_value=FakeResponse({"content": {"sha": "new-sha"}}),
+        ) as put:
+            reserved = ledger.reserve_post(
+                record=record,
+                campaign=campaign,
+                account=account,
+                platform="instagram",
+                capacity_ok=True,
+                now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(reserved["status"], "RESERVED")
+        self.assertTrue(reserved["reserved_at"])
+        self.assertEqual(put.call_count, 1)
+        body = put.call_args.kwargs["json"]
+        persisted = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
+        self.assertEqual(persisted["records"][0]["status"], "RESERVED")
+        self.assertEqual(body["branch"], "test-branch")
+
+    def test_controlled_post_runner_reserves_ledger_before_media_upload_and_social_post(self):
+        source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
+        self.assertLess(source.index("ledger.reserve_post("), source.index("client.upload_temp_media(output)"))
+        self.assertLess(source.index("client.upload_temp_media(output)"), source.index("client.create_video_post_now("))
+        self.assertIn("GitHubSocialPostLedger.from_environment()", source)
+        self.assertIn('"ledger_recorded": True', source)
+        self.assertIn('"ABORTED_BEFORE_POST"', source)
+        self.assertIn('"SUBMISSION_UNKNOWN"', source)
+
+    def test_phase_c_jobs_have_scoped_contents_write_for_the_ledger_only(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 3)
+        self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
+        self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
+        for phase in ("phase-b", "phase-c-instagram", "phase-c-tiktok"):
+            self.assertIn(
+                "github.ref == 'refs/heads/codex/port-proven-uploader' "
+                + "&& contains(github.event.head_commit.message, '["
+                + phase
+                + "]')",
+                workflow,
+            )
+
+
+    def test_ledger_daily_cap_and_minimum_interval_use_account_history(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [
+                {
+                    "status": "PUBLISHED",
+                    "platform": "instagram",
+                    "account_id": "ig-account",
+                    "video_sha256": "a" * 64,
+                    "reserved_at": "2026-11-23T10:15:00+00:00",
+                },
+                {
+                    "status": "RESERVED",
+                    "platform": "instagram",
+                    "account_id": "ig-account",
+                    "video_sha256": "b" * 64,
+                    "reserved_at": "2026-11-23T11:30:00+00:00",
+                },
+            ],
+        }
+        state = ledger_policy_state(
+            ledger,
+            campaign_id="new-campaign",
+            video_sha256="c" * 64,
+            platform="instagram",
+            account_id="ig-account",
+            idempotency_key_sha256="d" * 64,
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertFalse(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 2)
+        self.assertEqual(state["last_posted_at"].isoformat(), "2026-11-23T11:30:00+00:00")
+
+    def test_aborted_before_post_reservation_does_not_permanently_block_retry(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [{
+                "status": "ABORTED_BEFORE_POST",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "video_sha256": "a" * 64,
+                "idempotency_key_sha256": "b" * 64,
+                "reserved_at": "2026-11-23T10:15:00+00:00",
+            }],
+        }
+        state = ledger_policy_state(
+            ledger,
+            campaign_id="new-campaign",
+            video_sha256="a" * 64,
+            platform="instagram",
+            account_id="ig-account",
+            idempotency_key_sha256="b" * 64,
+            now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+        )
+        self.assertFalse(state["duplicate_found"])
+        self.assertEqual(state["posts_today"], 0)
+        self.assertIsNone(state["last_posted_at"])
+
+    def test_ledger_rejects_status_regression(self):
+        stored = {
+            "schema_version": 1,
+            "records": [{
+                "idempotency_key_sha256": "a" * 64,
+                "status": "PUBLISHED",
+                "platform": "instagram",
+                "account_id": "ig-account",
+            }],
+        }
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()):
+            with self.assertRaisesRegex(SocialLedgerHold, "HOLD_SOCIAL_LEDGER_STATUS_TRANSITION_INVALID"):
+                ledger.update_post("a" * 64, status="CREATED")
+
+    def test_published_url_capture_only_accepts_platform_domains(self):
+        source = (ROOT / "scripts" / "post_app_campaign_instagram_test.py").read_text(encoding="utf-8")
+        self.assertIn('"instagram": "instagram.com"', source)
+        self.assertIn('"tiktok": "tiktok.com"', source)
+        self.assertIn("parsed.scheme == \"https\"", source)
+        self.assertIn('host.endswith("." + allowed_domain)', source)
+
+
+    def test_ledger_write_probe_updates_only_metadata_and_never_posts(self):
+        current_ledger = json.loads((ROOT / "data" / "social_post_ledger.json").read_text(encoding="utf-8"))
+        encoded = base64.b64encode(json.dumps(current_ledger).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()), patch(
+            "core.social_post_ledger.requests.put",
+            return_value=FakeResponse(),
+        ) as put:
+            result = ledger.verify_writable()
+
+        self.assertEqual(result["status"], "SOCIAL_POST_LEDGER_WRITE_OK")
+        self.assertTrue(result["repository_write_performed"])
+        self.assertFalse(result["media_upload_performed"])
+        self.assertFalse(result["social_post_performed"])
+        self.assertFalse(result["youtube_write_performed"])
+        self.assertFalse(result["zodiac_write_performed"])
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(persisted["last_verified_at"], result["last_verified_at"])
+        self.assertEqual(persisted["records"], current_ledger["records"])
+
+    def test_workflow_ledger_write_check_has_no_social_write_surface(self):
+        workflow = (ROOT / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "check_social_post_ledger.py").read_text(encoding="utf-8")
+        self.assertIn("social-ledger-check", workflow)
+        self.assertIn("[ledger-write-check]", workflow)
+        self.assertIn("social-ledger-write-check:", workflow)
+        self.assertIn("SOCIAL_LEDGER_TOKEN: ${{ github.token }}", workflow)
+        self.assertIn("scripts/check_social_post_ledger.py", workflow)
+        self.assertNotIn("create_video_post_now", runner)
+        self.assertNotIn("requests.post", runner)
+        self.assertIn('"social_post_performed": False', runner)
+
+
+    def test_unknown_submission_can_be_closed_after_manual_published_reconciliation(self):
+        stored = {
+            "schema_version": 1,
+            "records": [{
+                "idempotency_key_sha256": "e" * 64,
+                "status": "SUBMISSION_UNKNOWN",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "reserved_at": "2026-11-22T23:58:00+00:00",
+            }],
+        }
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch("core.social_post_ledger.requests.get", return_value=FakeResponse()), patch(
+            "core.social_post_ledger.requests.put", return_value=FakeResponse()
+        ) as put:
+            updated = ledger.update_post(
+                "e" * 64,
+                status="PUBLISHED",
+                post_status="published",
+                published_url="https://www.instagram.com/p/RESOLVED123/",
+                published_url_verified=True,
+                published_at="2026-11-23T00:02:00+00:00",
+            )
+
+        self.assertEqual(updated["status"], "PUBLISHED")
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(persisted["records"][0]["status"], "PUBLISHED")
+        self.assertEqual(persisted["records"][0]["published_url_verified"], True)
+
+    def test_ledger_quota_timestamp_prefers_publication_over_reservation(self):
+        from core.social_post_ledger import _timestamp_for_record
+
+        record = {
+            "reserved_at": "2026-11-22T23:58:00+00:00",
+            "updated_at": "2026-11-23T00:03:00+00:00",
+            "published_at": "2026-11-23T00:02:00+00:00",
+        }
+        self.assertEqual(
+            _timestamp_for_record(record).isoformat(),
+            "2026-11-23T00:02:00+00:00",
+        )
+
+
+    def test_aborted_reservation_with_same_idempotency_key_can_be_reserved_again(self):
+        old_record = {
+            "idempotency_key_sha256": "f" * 64,
+            "campaign_id": "ledger-retry-test",
+            "platform": "instagram",
+            "account_id": "ig-retry-account",
+            "video_sha256": "a" * 64,
+            "status": "ABORTED_BEFORE_POST",
+            "reserved_at": "2026-11-23T10:00:00+00:00",
+            "updated_at": "2026-11-23T10:01:00+00:00",
+        }
+        stored = {"schema_version": 1, "records": [old_record]}
+        encoded = base64.b64encode(json.dumps(stored).encode("utf-8")).decode("ascii")
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {"sha": "ledger-sha", "content": encoded}
+
+        record = {
+            "idempotency_key_sha256": "f" * 64,
+            "campaign_id": "ledger-retry-test",
+            "app_id": "retry-app",
+            "product_name": "Retry App",
+            "market": "JP",
+            "language": "ja",
+            "platform": "instagram",
+            "account_id": "ig-retry-account",
+            "source_hash": "b" * 64,
+            "evidence_hash": "c" * 64,
+            "video_sha256": "a" * 64,
+            "store_url": "https://example.com",
+            "media_upload_performed": False,
+            "social_post_created": False,
+        }
+        campaign = {
+            "status": "ACTIVE",
+            "official_url": "https://example.com",
+            "source_urls": ["https://example.com"],
+            "store_url": "https://example.com",
+            "cta_url": "https://example.com",
+            "market": "JP",
+            "grounding_status": "PASS",
+        }
+        account = {"purpose": "advertising", "market": "JP", "platform": "instagram"}
+        ledger = GitHubSocialPostLedger(
+            token="test-token", repository="owner/repo", branch="test-branch"
+        )
+        with patch(
+            "core.social_post_ledger.requests.get", return_value=FakeResponse()
+        ), patch(
+            "core.social_post_ledger.requests.put", return_value=FakeResponse()
+        ) as put:
+            reserved = ledger.reserve_post(
+                record=record,
+                campaign=campaign,
+                account=account,
+                platform="instagram",
+                capacity_ok=True,
+                now=datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(reserved["status"], "RESERVED")
+        persisted = json.loads(base64.b64decode(put.call_args.kwargs["json"]["content"]).decode("utf-8"))
+        self.assertEqual(len(persisted["records"]), 1)
+        self.assertEqual(persisted["records"][0]["status"], "RESERVED")
+        self.assertEqual(persisted["records"][0]["idempotency_key_sha256"], "f" * 64)
+
+
+    def test_controlled_post_uses_exact_platform_publication_status(self):
+        response = {
+            "status": "processing",
+            "platforms": [{
+                "platform": "instagram",
+                "accountId": {"_id": "ig-ad-1"},
+                "status": "published",
+            }],
+        }
+        self.assertEqual(
+            _effective_post_status(response, platform="instagram", account_id="ig-ad-1"),
+            "published",
+        )
+        self.assertEqual(
+            _effective_post_status(response, platform="tiktok", account_id="ig-ad-1"),
+            "processing",
+        )
+
+    def test_reconciliation_rejects_non_platform_urls(self):
+        from scripts.reconcile_advertising_social_posts import _public_platform_url
+
+        self.assertEqual(
+            _public_platform_url("https://www.instagram.com/p/ABC/", platform="instagram"),
+            "https://www.instagram.com/p/ABC/",
+        )
+        self.assertEqual(
+            _public_platform_url("https://evil.example/redirect", platform="instagram"),
+            "",
+        )
+        self.assertEqual(
+            _public_platform_url("https://www.instagram.com.attacker.example/p/ABC/", platform="instagram"),
+            "",
+        )
+        self.assertEqual(
+            _public_platform_url("http://www.tiktok.com/@user/video/123", platform="tiktok"),
+            "",
+        )
+
+
+    def test_social_ledger_fails_closed_on_unknown_record_status(self):
+        ledger = {
+            "schema_version": 1,
+            "records": [{
+                "status": "POSTING_IN_PROGRESS_V2",
+                "platform": "instagram",
+                "account_id": "ig-account",
+                "video_sha256": "a" * 64,
+            }],
+        }
+        with self.assertRaisesRegex(SocialLedgerHold, "HOLD_SOCIAL_LEDGER_STATUS_UNKNOWN"):
+            ledger_policy_state(
+                ledger,
+                campaign_id="new-campaign",
+                video_sha256="b" * 64,
+                platform="instagram",
+                account_id="ig-account",
+                idempotency_key_sha256="c" * 64,
+                now=datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc),
+            )
 
 if __name__ == "__main__":
     unittest.main()

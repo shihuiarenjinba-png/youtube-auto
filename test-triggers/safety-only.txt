@@ -1,2 +1,34 @@
 Safety-only validation for advertising YouTube identity discovery and JP connection wiring.
 No external post, media transfer, OAuth reauthorization, or YouTube write is authorized.
+
+Read-only social post reconciliation regression tests.
+
+Verify platformPostUrl extraction and native post ID capture.
+
+Verify read-only retrieval for known historical posts.
+
+Test explicit read-only account provenance fallback.
+
+Validate redacted Zernio post response diagnostics.
+
+Verify nested Zernio account ID resolution.
+
+Validate persistent ledger reservation and duplicate prevention.
+
+Verify branch-level concurrency for serialized social ledger writes.
+
+Verify ledger daily cap and aborted reservation recovery tests.
+
+Test the no-post GitHub Contents API ledger write probe.
+
+Recheck token scope assertions for read-only ledger permission probe.
+
+Verify manual resolution of SUBMISSION_UNKNOWN and publication-time quota handling.
+
+Verify aborted reservation reuse without creating a social post.
+
+Verify external Phase B/C writes remain disabled on the PR branch.
+
+Verify platform status interpretation and strict public URL domain matching.
+
+Ensure unknown social ledger states stop posting instead of being ignored.
