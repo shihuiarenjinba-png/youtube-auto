@@ -71,11 +71,19 @@ def resolve_advertising_account(
     }
 
 
-def _public_https_url(value: Any) -> str:
+def _public_platform_url(value: Any, *, platform: str) -> str:
     candidate = str(value or "").strip()
     parsed = urlparse(candidate)
     host = (parsed.hostname or "").lower()
-    if parsed.scheme != "https" or not host or host == "zernio.com" or host.endswith(".zernio.com"):
+    allowed_domain = {
+        "instagram": "instagram.com",
+        "tiktok": "tiktok.com",
+    }.get(platform)
+    if (
+        not allowed_domain
+        or parsed.scheme != "https"
+        or not (host == allowed_domain or host.endswith("." + allowed_domain))
+    ):
         return ""
     return candidate
 
@@ -128,12 +136,12 @@ def build_reconciliation_result(
         raise ReconciliationHold("HOLD_SOCIAL_POST_NOT_PUBLISHED")
     public_url = ""
     for key in ("platformPostUrl", "publishedUrl", "permalink", "platformUrl", "url"):
-        public_url = _public_https_url(target.get(key))
+        public_url = _public_platform_url(target.get(key), platform=platform)
         if public_url:
             break
     if not public_url:
         for key in ("platformPostUrl", "publishedUrl", "permalink", "platformUrl", "url"):
-            public_url = _public_https_url(post.get(key))
+            public_url = _public_platform_url(post.get(key), platform=platform)
             if public_url:
                 break
     return {
