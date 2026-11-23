@@ -254,7 +254,7 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(content["app_id"], "OkinawaDesktopTools.DaymarkAI")
         self.assertEqual(content["disclosure_statement"], "広告｜自社製品の紹介")
         self.assertEqual(content["disclosure_label"], "広告")
-        self.assertTrue(content["caption"].startswith("広告｜自社製品の紹介\\n"))
+        self.assertTrue(content["caption"].startswith("広告｜自社製品の紹介\n"))
         video_source = (ROOT / "core" / "app_ad_video.py").read_text(encoding="utf-8")
         self.assertIn('draw.text((862, 82), disclosure_label', video_source)
         self.assertIn('footer_disclosure = str(content.get("disclosure_statement")', video_source)
