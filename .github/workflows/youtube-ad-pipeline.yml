@@ -27,12 +27,26 @@ on:
           - rag-dry-run
           - app-campaign-rag-dry-run
           - social-check
+          - social-post-reconcile
       campaign_id:
         description: "Required only for rag-dry-run"
         required: false
         type: string
       source_url:
         description: "Public HTTPS source; required only for rag-dry-run"
+        required: false
+        type: string
+      social_platform:
+        description: "Platform for read-only reconciliation of an existing social post"
+        required: false
+        type: choice
+        options: [instagram, tiktok]
+      social_account_id:
+        description: "Existing advertising account ID for the selected platform"
+        required: false
+        type: string
+      social_post_id:
+        description: "Existing Zernio post ID; read-only lookup only"
         required: false
         type: string
 
@@ -191,6 +205,54 @@ jobs:
         env:
           ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
         run: python scripts/check_social_accounts.py --language en
+
+
+  social-jp-post-reconcile:
+    needs: safety-tests
+    if: inputs.mode == 'social-post-reconcile' && inputs.market == 'jp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Reconcile one existing JP social post without writing
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_JP_1 }}
+          ZERNIO_API_KEY_2: ${{ secrets.ZERNIO_API_KEY_JP_2 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language ja
+          --platform "${{ inputs.social_platform }}"
+          --account-id "${{ inputs.social_account_id }}"
+          --post-id "${{ inputs.social_post_id }}"
+
+  social-us-post-reconcile:
+    needs: safety-tests
+    if: inputs.mode == 'social-post-reconcile' && inputs.market == 'us'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Reconcile one existing US social post without writing
+        env:
+          ZERNIO_API_KEY_1: ${{ secrets.ZERNIO_API_KEY_US_1 }}
+        run: >-
+          python scripts/reconcile_advertising_social_posts.py
+          --language en
+          --platform "${{ inputs.social_platform }}"
+          --account-id "${{ inputs.social_account_id }}"
+          --post-id "${{ inputs.social_post_id }}"
 
   phase-b-daymark-media-transfer:
     needs: safety-tests
