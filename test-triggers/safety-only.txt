@@ -12,3 +12,5 @@ Test explicit read-only account provenance fallback.
 Validate redacted Zernio post response diagnostics.
 
 Verify nested Zernio account ID resolution.
+
+Validate persistent ledger reservation and duplicate prevention.
