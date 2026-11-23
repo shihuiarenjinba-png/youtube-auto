@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -60,7 +61,7 @@ def _platform_failure(value: dict[str, Any]) -> str:
     return ""
 
 
-def _published_url(value: dict[str, Any]) -> str:
+def _published_url(value: dict[str, Any], *, platform: str) -> str:
     candidates = []
     for key in ("platformPostUrl", "url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
         if value.get(key):
@@ -72,9 +73,20 @@ def _published_url(value: dict[str, Any]) -> str:
                 for key in ("platformPostUrl", "url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
                     if row.get(key):
                         candidates.append(str(row[key]))
-    for url in candidates:
-        if url.startswith("https://") and "media.zernio.com" not in url:
-            return url
+    allowed_domain = {
+        "instagram": "instagram.com",
+        "tiktok": "tiktok.com",
+    }.get(platform)
+    if not allowed_domain:
+        return ""
+    for candidate in candidates:
+        parsed = urlparse(candidate)
+        host = (parsed.hostname or "").lower()
+        if (
+            parsed.scheme == "https"
+            and (host == allowed_domain or host.endswith("." + allowed_domain))
+        ):
+            return candidate
     return ""
 
 
@@ -233,7 +245,7 @@ def main() -> int:
             _platform_post_id(current, platform=args.platform, account_id=args.account_id)
             or _platform_post_id(post, platform=args.platform, account_id=args.account_id)
         )
-        initial_url = _published_url(current) or _published_url(post)
+        initial_url = _published_url(current, platform=args.platform) or _published_url(post, platform=args.platform)
         if failure or initial_status == "failed":
             ledger.update_post(
                 ledger_record_key,
@@ -290,7 +302,7 @@ def main() -> int:
             _platform_post_id(current, platform=args.platform, account_id=args.account_id)
             or initial_platform_post_id
         )
-        published_url = _published_url(current) or initial_url
+        published_url = _published_url(current, platform=args.platform) or initial_url
         if failure or final_status == "failed":
             ledger.update_post(
                 ledger_record_key,
