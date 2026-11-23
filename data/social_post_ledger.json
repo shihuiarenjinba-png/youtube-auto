@@ -66,11 +66,17 @@
       "video_sha256": "0626e8379771b57656afba9613827a7d4e327462a5658679849aed9a96d444b0",
       "store_url": "https://apps.microsoft.com/search?query=Daymark%20AI",
       "media_upload_performed": true,
-      "social_post_created": false,
-      "status": "MEDIA_UPLOADED",
+      "social_post_created": true,
+      "status": "CREATED",
       "reserved_at": "2026-11-23T16:08:58.618611+00:00",
-      "updated_at": "2026-11-23T16:09:01.259038+00:00",
-      "media_uploaded_at": "2026-11-23T16:09:00.962398+00:00"
+      "updated_at": "2026-11-23T16:09:06.886879+00:00",
+      "media_uploaded_at": "2026-11-23T16:09:00.962398+00:00",
+      "zernio_post_id": "6b04651e4ad0278be63042a9",
+      "platform_post_id": "",
+      "post_status": "processing",
+      "published_url": "",
+      "published_url_verified": false,
+      "published_at": ""
     }
   ],
   "last_verified_at": "2026-11-23T15:01:01.807578+00:00"
