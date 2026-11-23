@@ -6,7 +6,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from PIL import Image
 
 from core.app_ad_video import AppVideoHold, sha256_file, write_video_review_bundle
 
@@ -25,7 +24,7 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             screenshot_rows = []
             for index in range(5):
                 path = assets / f"source-{index + 1:02d}.png"
-                Image.new("RGB", (32, 48), (index * 30, index * 20, index * 10)).save(path)
+                path.write_bytes(b"png-source-" + str(index).encode("ascii"))
                 screenshot_rows.append({
                     "path": str(path.relative_to(root)),
                     "sha256": sha256_file(path),
@@ -34,7 +33,7 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             card_paths = []
             for index in range(4):
                 path = cards_dir / f"card-{index + 1:02d}.png"
-                Image.new("RGB", (24, 42), (index * 35, index * 25, index * 15)).save(path)
+                path.write_bytes(b"png-card-" + str(index).encode("ascii"))
                 card_paths.append(path)
 
             video_path = root / "work" / "preview.mp4"
@@ -103,10 +102,10 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             rows = []
             for index in range(4):
                 image_path = source_dir / f"screen-{index}.png"
-                Image.new("RGB", (16, 16), (index, index, index)).save(image_path)
+                image_path.write_bytes(b"png-screen-" + str(index).encode("ascii"))
                 rows.append({"path": str(image_path.relative_to(root)), "sha256": sha256_file(image_path)})
             for index in range(4):
-                Image.new("RGB", (16, 16)).save(cards_dir / f"card-{index + 1:02d}.png")
+                (cards_dir / f"card-{index + 1:02d}.png").write_bytes(b"png-card-" + str(index).encode("ascii"))
             video = root / "preview.mp4"
             video.write_bytes(b"x" * 2048)
             (bgm_dir / "music.mp3").write_bytes(b"bgm")
