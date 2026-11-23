@@ -6,9 +6,11 @@ import argparse
 import json
 import shutil
 import tempfile
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from core.app_ad_video import build_local_review_video, write_video_review_bundle  # noqa: E402
 from core.app_campaigns import (  # noqa: E402
