@@ -4,3 +4,5 @@ No external post, media transfer, OAuth reauthorization, or YouTube write is aut
 Read-only social post reconciliation regression tests.
 
 Verify platformPostUrl extraction and native post ID capture.
+
+Verify read-only retrieval for known historical posts.
