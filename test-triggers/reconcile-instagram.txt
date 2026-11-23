@@ -1,2 +1,4 @@
 Read-only reconciliation of the existing Daymark AI JP Instagram post.
 No new media upload or social post is permitted.
+
+Second read-only lookup after account-provenance handling fix.
