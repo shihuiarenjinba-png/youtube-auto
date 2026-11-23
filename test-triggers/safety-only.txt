@@ -1,2 +1,4 @@
 Safety-only validation for advertising YouTube identity discovery and JP connection wiring.
 No external post, media transfer, OAuth reauthorization, or YouTube write is authorized.
+
+Read-only social post reconciliation regression tests.
