@@ -648,6 +648,14 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertEqual(workflow.count("SOCIAL_LEDGER_TOKEN: ${{ github.token }}"), 3)
         self.assertGreaterEqual(workflow.count("permissions:\n      contents: write"), 2)
         self.assertIn("group: advertising-social-ledger-${{ github.ref }}", workflow)
+        for phase in ("phase-b", "phase-c-instagram", "phase-c-tiktok"):
+            self.assertIn(
+                "github.ref == 'refs/heads/codex/port-proven-uploader' "
+                + "&& contains(github.event.head_commit.message, '["
+                + phase
+                + "]')",
+                workflow,
+            )
 
 
     def test_ledger_daily_cap_and_minimum_interval_use_account_history(self):
