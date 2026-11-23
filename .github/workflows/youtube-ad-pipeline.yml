@@ -6,6 +6,7 @@ on:
       - codex/port-proven-uploader
       - codex/social-post-reconciliation
       - codex/advertising-disclosure-ready
+      - codex/daymark-truthful-caption
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
