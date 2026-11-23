@@ -67,7 +67,7 @@ def _published_url(value: dict[str, Any]) -> str:
     if isinstance(platforms, list):
         for row in platforms:
             if isinstance(row, dict):
-                for key in ("url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
+                for key in ("platformPostUrl", "url", "postUrl", "permalink", "platformUrl", "publishedUrl"):
                     if row.get(key):
                         candidates.append(str(row[key]))
     for url in candidates:
