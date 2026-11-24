@@ -10,3 +10,5 @@ Retry no-publish Daymark preview after the runner import-path fix.
 Retry after resolving nested BGM path provenance and enlarging product UI in preview cards.
 
 Verify clean end card layout; keep Microsoft Store search URL in caption only.
+
+[daymark-review-preview] regenerate preview after clean end-card update; do not publish.
