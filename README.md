@@ -44,18 +44,25 @@ link, and do not publish a price without rechecking the exact product listing.
 
 See [Daymark AI advertising and video-production plan](docs/DAYMARK_AI_ADS_AND_VIDEO_PRODUCTION.md).
 
-## Video production status
+## Video and narration status
 
-The currently verified renderer creates a portrait MP4 from four existing
-application screenshots, crossfades the cards, and adds a local BGM asset. It
-does **not** currently generate scene images through an image API or narration
-through a speech/voice API.
+The shared app-campaign video builder creates a portrait MP4 from four verified
+application screenshots, crossfades the cards, generates Japanese narration
+with Microsoft Edge TTS, and mixes it with a quieter local BGM asset. This
+voice path was exercised in GitHub Actions with the Daymark AI campaign; the
+review artifact is not itself a social post.
 
-The target API image-generation plus voice-generation route remains the
-intended production direction. The current screenshot/BGM renderer is only a
-temporary fallback and must not be presented as the target or described as an
-AI-generated image-and-voice video. The plan documents the stages and safety
-gates required before the API route is enabled.
+Both `scripts/transfer_app_campaign_media.py` and
+`scripts/post_app_campaign_instagram_test.py` call the same
+`build_local_review_video` function, so the MP4 passed to the Zernio media
+transfer/posting path includes narration. Instagram and TikTok are the
+supported controlled Zernio posting targets in that script. The workflow's
+read-only health/reconciliation modes do not publish automatically. YouTube
+OAuth remains read-only; a YouTube upload path for these app campaigns is not
+verified or enabled.
+
+Scene images are still based on verified app screenshots; no image-generation
+API is used.
 
 ## Social account namespaces
 
