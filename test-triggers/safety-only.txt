@@ -12,3 +12,5 @@ Retry after resolving nested BGM path provenance and enlarging product UI in pre
 Verify clean end card layout; keep Microsoft Store search URL in caption only.
 
 [daymark-review-preview] regenerate preview after clean end-card update; do not publish.
+
+Verify dynamic grounded ad captions include every feature and exact CTA URL; verify narration omits URLs.
