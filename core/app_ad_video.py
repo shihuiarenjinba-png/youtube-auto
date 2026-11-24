@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .ad_voice import generate_narration_audio, probe_audio_duration
 from .bgm_picker import pick
 from .card_video import build_card_video
 
@@ -187,7 +188,7 @@ def probe_video(path: Path) -> dict[str, Any]:
         raise AppVideoHold("HOLD_VIDEO_NOT_1080X1920")
     if not metadata.get("audio_codec"):
         raise AppVideoHold("HOLD_VIDEO_AUDIO_MISSING")
-    if not 10.0 <= duration <= 15.0:
+    if not 10.0 <= duration <= 30.0:
         raise AppVideoHold("HOLD_VIDEO_DURATION_OUT_OF_RANGE")
     return {
         "codec": metadata["codec"],
@@ -210,15 +211,40 @@ def build_local_review_video(
     bgm = pick(root / "assets" / "bgm", seed=str(content["evidence_hash"]))
     if not bgm:
         raise AppVideoHold("HOLD_BGM_NOT_AVAILABLE")
+
+    script_lines = content.get("video_script")
+    if isinstance(script_lines, list):
+        narration_text = "\\n".join(str(line).strip() for line in script_lines if str(line).strip())
+    else:
+        narration_text = str(content.get("narration_text") or "").replace("\\\\n", "\\n").strip()
+    if not narration_text:
+        raise AppVideoHold("HOLD_AD_NARRATION_TEXT_EMPTY")
+
+    voice_id = os.environ.get("AD_NARRATION_VOICE", "ja-JP-NanamiNeural").strip()
+    narration_path = output_path.with_name(output_path.stem + ".narration.mp3")
+    voice_result = generate_narration_audio(
+        narration_text,
+        narration_path,
+        voice_id=voice_id,
+        rate="-5%",
+        pitch="+0Hz",
+    )
+    narration_duration = probe_audio_duration(narration_path)
+    target_duration = max(12.0, narration_duration + 0.25)
+    if target_duration > 30.0:
+        raise AppVideoHold("HOLD_AD_NARRATION_EXCEEDS_30_SECONDS")
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     build_card_video(
         [str(path) for path in cards],
         str(output_path),
         bgm_path=bgm,
-        volume=0.14,
-        seconds_per_card=3.0,
+        volume=0.06,
+        seconds_per_card=target_duration / len(cards),
         effect="crossfade",
         fps=30,
+        narration_path=str(narration_path),
+        narration_volume=1.0,
     )
     validation = probe_video(output_path)
     validation.update({
@@ -227,9 +253,14 @@ def build_local_review_video(
         "bgm_name": Path(bgm).name,
         "bgm_path": Path(bgm).resolve().relative_to(root.resolve()).as_posix(),
         "card_count": len(cards),
+        "narration_path": str(narration_path),
+        "narration_sha256": sha256_file(narration_path),
+        "narration_duration_seconds": narration_duration,
+        "voice_provider": voice_result["provider"],
+        "voice_id": voice_result["voice_id"],
+        "narration_text_sha256": hashlib.sha256(narration_text.encode("utf-8")).hexdigest(),
     })
     return validation
-
 
 
 def write_video_review_bundle(
@@ -309,6 +340,15 @@ def write_video_review_bundle(
         raise AppVideoHold("HOLD_REVIEW_BUNDLE_BGM_MISSING")
     shutil.copy2(bgm_path, audio_dir / bgm_path.name)
 
+    narration_source = Path(str(validation.get("narration_path") or "")).resolve()
+    narration_sha = str(validation.get("narration_sha256") or "")
+    if not narration_source.is_file() or len(narration_sha) != 64:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_NARRATION_MISSING")
+    if sha256_file(narration_source) != narration_sha:
+        raise AppVideoHold("HOLD_REVIEW_BUNDLE_NARRATION_HASH_MISMATCH")
+    narration_bundle_path = audio_dir / "narration.mp3"
+    shutil.copy2(narration_source, narration_bundle_path)
+
     evidence = {
         "schema_version": 1,
         "review_status": "REVIEW_REQUIRED_NOT_PUBLISHED_BY_PREVIEW_JOB",
@@ -321,16 +361,28 @@ def write_video_review_bundle(
         "generated_from_source_hash": str(content.get("generated_from_source_hash") or ""),
         "evidence_hash": str(content.get("evidence_hash") or ""),
         "generation": {
-            "mode": "screenshot_cards_crossfade_with_local_bgm",
+            "mode": "screenshot_cards_crossfade_with_edge_tts_narration_and_local_bgm",
             "image_generation_api_used": False,
-            "voice_generation_api_used": False,
-            "audio_mode": "local_bgm",
+            "voice_generation_service_used": True,
+            "voice_provider": validation.get("voice_provider"),
+            "voice_id": validation.get("voice_id"),
+            "audio_mode": "edge_tts_narration_plus_local_bgm",
         },
         "source_assets": source_assets,
         "rendered_cards": rendered_cards,
         "audio": {
-            "bundle_path": f"audio/{bgm_path.name}",
-            "sha256": sha256_file(bgm_path),
+            "bgm": {
+                "bundle_path": f"audio/{bgm_path.name}",
+                "sha256": sha256_file(bgm_path),
+            },
+            "narration": {
+                "bundle_path": "audio/narration.mp3",
+                "sha256": narration_sha,
+                "text_sha256": validation.get("narration_text_sha256"),
+                "duration_seconds": validation.get("narration_duration_seconds"),
+                "provider": validation.get("voice_provider"),
+                "voice_id": validation.get("voice_id"),
+            },
         },
         "video": {
             "bundle_path": video_name,
