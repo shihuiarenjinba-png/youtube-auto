@@ -262,6 +262,12 @@ class PipelineSafetyTests(unittest.TestCase):
         self.assertIn("日記、習慣、カレンダー、検索、バックアップはAIなしで利用できます。", content["caption"])
         self.assertIn("Microsoft Storeで「Daymark AI」を検索（Windows PC向け）", content["caption"])
         self.assertTrue(content["caption"].endswith(campaign["store_url"]))
+        self.assertTrue(content["caption_has_cta_url"])
+        self.assertIn("主な機能", content["caption"])
+        for feature in campaign["features"]:
+            self.assertIn(feature, content["caption"])
+        self.assertNotIn(campaign["store_url"], content["narration_text"])
+        self.assertIn("詳しい機能と入手先は、投稿の概要欄をご確認ください。", content["narration_text"])
         self.assertIn("Windows 10／11（x64）", content["video_end_card_text"])
         self.assertIn("任意のローカルOllama AI補助", content["video_end_card_text"])
         self.assertIn("Microsoft Storeで「Daymark AI」を検索", content["video_end_card_text"])
