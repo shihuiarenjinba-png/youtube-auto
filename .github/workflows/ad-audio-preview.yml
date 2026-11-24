@@ -8,6 +8,7 @@ on:
       - .github/workflows/ad-audio-preview.yml
       - core/ad_voice.py
       - core/app_ad_video.py
+      - core/app_campaigns.py
       - core/card_video.py
       - scripts/preview_app_campaign_video.py
       - requirements.txt
