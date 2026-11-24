@@ -12,6 +12,7 @@ on:
       - scripts/preview_app_campaign_video.py
       - requirements.txt
       - tests/test_ad_voice.py
+      - tests/test_daymark_review_evidence.py
   workflow_dispatch:
 
 permissions:
