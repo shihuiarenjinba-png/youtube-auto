@@ -216,7 +216,7 @@ def build_local_review_video(
     if isinstance(script_lines, list):
         narration_text = "\\n".join(str(line).strip() for line in script_lines if str(line).strip())
     else:
-        narration_text = str(content.get("narration_text") or "").replace("\\\\n", "\\n").strip()
+        narration_text = str(content.get("narration_text") or "").replace("\\n", "。").strip()
     if not narration_text:
         raise AppVideoHold("HOLD_AD_NARRATION_TEXT_EMPTY")
 
