@@ -8,6 +8,7 @@ on:
       - codex/advertising-disclosure-ready
       - codex/daymark-truthful-caption
       - codex/daymark-review-video-evidence
+      - codex/daymark-end-card-cleanup
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt
@@ -333,7 +334,7 @@ jobs:
 
   daymark-video-review-preview:
     needs: safety-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/daymark-review-video-evidence' && contains(github.event.head_commit.message, '[daymark-review-preview]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/daymark-end-card-cleanup' && contains(github.event.head_commit.message, '[daymark-review-preview]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

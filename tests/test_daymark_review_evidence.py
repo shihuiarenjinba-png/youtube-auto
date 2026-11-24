@@ -122,6 +122,14 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
                     validation={"video_sha256": "0" * 64, "bgm_name": "music.mp3"},
                 )
 
+    def test_store_url_stays_in_caption_and_not_on_end_card(self):
+        root = Path(__file__).resolve().parents[1]
+        video_source = (root / "core" / "app_ad_video.py").read_text(encoding="utf-8")
+        campaign_source = (root / "core" / "app_campaigns.py").read_text(encoding="utf-8")
+        self.assertIn('end_card_details = str(content.get("video_end_card_text") or "").strip()', video_source)
+        self.assertNotIn('for value in (content.get("video_end_card_text"), cta_url)', video_source)
+        self.assertIn('caption_lines.append(f"{store_link_notice}\\n{cta_url}")', campaign_source)
+
     def test_preview_workflow_is_separate_from_approved_posting(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github" / "workflows" / "youtube-ad-pipeline.yml").read_text(encoding="utf-8")
