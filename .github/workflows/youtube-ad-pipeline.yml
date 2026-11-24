@@ -9,6 +9,7 @@ on:
       - codex/daymark-truthful-caption
       - codex/daymark-review-video-evidence
       - codex/daymark-end-card-cleanup
+      - codex/ad-copy-dynamic-and-multi-product
     paths:
       - test-triggers/phase-b.txt
       - test-triggers/phase-c-instagram.txt

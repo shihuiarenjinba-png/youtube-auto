@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "campaign_id": "data-contract-auditor-jp-draft-20261124",
+  "app_id": "OkinawaDesktopTools.DataContractAuditor",
+  "product_name": "Data Contract Auditor",
+  "status": "HOLD",
+  "hold_reasons": [
+    "Store未公開・最終QA未完了。販売リンクと公開用素材が確認できるまで投稿禁止。"
+  ],
+  "market": "JP",
+  "language": "ja",
+  "official_url": "https://github.com/shihuiarenjinba-png/csv-import-validator",
+  "source_urls": [
+    "https://raw.githubusercontent.com/shihuiarenjinba-png/csv-import-validator/main/README.md"
+  ],
+  "description": "CSV・Excelの基準ファイルと今回のファイルを比較し、列構成やデータ品質の変化を確認するローカル監査ツールの開発版です。",
+  "features": [
+    "列の追加・削除や推定データ型の変化を検出",
+    "NULL率やNumeric列の平均値の変化を確認",
+    "Baseline範囲を超える最小値・最大値や新しいカテゴリ値を検出",
+    "指定Key列の重複率、行数・列数の変化を確認",
+    "generated_contract.json、data_drift_audit.json、data_drift_findings.csvを出力"
+  ],
+  "benefits": [
+    "基準ファイルと今回ファイルの差分を確認し、ETL前のデータ品質チェックを支援"
+  ],
+  "use_cases": [
+    "SaaS・EC・会計システムから定期出力するCSVの仕様変更確認",
+    "取引先から届く定型ファイルの列や型の変化の確認",
+    "ETL前にNULL率や重複率の急増を確認"
+  ],
+  "system_requirements": [],
+  "screenshots": [],
+  "local_evidence": [],
+  "cta_url": "",
+  "store_url": "",
+  "product_page_url": "",
+  "version": "1.0.0.0",
+  "price": null,
+  "release_notes": [],
+  "rotation": {
+    "last_posted_at": null,
+    "platform": null,
+    "account_id": null,
+    "source_hash": null,
+    "video_hash": null
+  }
+}
