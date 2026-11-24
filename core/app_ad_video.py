@@ -136,7 +136,7 @@ def render_review_cards(
     # The vertical end card should use the short, grounded CTA text.
     end_card_details = str(content.get("video_end_card_text") or "").strip()
     cards = [
-        ("Windows PCに記録", f"{summary}\n{features[0]}", screenshots[0]),
+        ("Windows向けアプリ", f"{summary}\n{features[0]}", screenshots[0]),
         ("毎日の習慣も", features[1], screenshots[1]),
         ("振り返りやすく", features[2], screenshots[2]),
         ("対応環境・入手先", end_card_details, screenshots[3]),
