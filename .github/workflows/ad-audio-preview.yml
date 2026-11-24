@@ -1,0 +1,58 @@
+name: Advertising audio preview
+
+on:
+  push:
+    branches:
+      - codex/ad-audio-integration
+    paths:
+      - .github/workflows/ad-audio-preview.yml
+      - core/ad_voice.py
+      - core/app_ad_video.py
+      - core/card_video.py
+      - scripts/preview_app_campaign_video.py
+      - requirements.txt
+      - tests/test_ad_voice.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audio-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install fonts and project dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Run safety and voice unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Render grounded Daymark preview with narration (no posting)
+        env:
+          AD_NARRATION_VOICE: ja-JP-NanamiNeural
+        run: |
+          python scripts/preview_app_campaign_video.py \
+            --dataset data/app_campaigns/daymark-ai-jp.json \
+            --evidence-dir "$RUNNER_TEMP/daymark-ai-audio-preview"
+      - name: Retain MP4, narration, BGM and evidence for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daymark-ai-audio-preview-${{ github.run_id }}
+          path: ${{ runner.temp }}/daymark-ai-audio-preview/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove temporary preview bundle
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/daymark-ai-audio-preview"
+          test ! -e "$RUNNER_TEMP/daymark-ai-audio-preview"
