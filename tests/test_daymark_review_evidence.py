@@ -41,6 +41,8 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             video_path.write_bytes(b"test-video-bytes" * 128)
             bgm = bgm_dir / "local-track.mp3"
             bgm.write_bytes(b"test-bgm-bytes")
+            narration = root / "work" / "narration.mp3"
+            narration.write_bytes(b"test-narration-bytes" * 128)
 
             campaign = {
                 "campaign_id": "daymark-test",
@@ -55,6 +57,12 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             }
             validation = {
                 "video_sha256": sha256_file(video_path),
+                "narration_path": str(narration),
+                "narration_sha256": sha256_file(narration),
+                "narration_text_sha256": "c" * 64,
+                "narration_duration_seconds": 8.0,
+                "voice_provider": "Microsoft Edge TTS",
+                "voice_id": "ja-JP-NanamiNeural",
                 "bgm_name": bgm.name,
                 "bgm_path": "assets/bgm/music/local-track.mp3",
                 "codec": "h264",
@@ -81,11 +89,14 @@ class DaymarkReviewEvidenceTests(unittest.TestCase):
             self.assertEqual([row["used_in_video"] for row in evidence["source_assets"]], [True, True, True, True, False])
             self.assertEqual(len(evidence["rendered_cards"]), 4)
             self.assertEqual(evidence["generation"]["image_generation_api_used"], False)
-            self.assertEqual(evidence["generation"]["voice_generation_api_used"], False)
+            self.assertEqual(evidence["generation"]["voice_generation_service_used"], True)
+            self.assertEqual(evidence["generation"]["voice_provider"], "Microsoft Edge TTS")
             self.assertFalse(evidence["publication"]["performed"])
             self.assertEqual(evidence["video"]["sha256"], validation["video_sha256"])
             self.assertTrue((bundle / "daymark-ai-review.mp4").is_file())
             self.assertTrue((bundle / "audio" / "local-track.mp3").is_file())
+            self.assertTrue((bundle / "audio" / "narration.mp3").is_file())
+            self.assertEqual(evidence["audio"]["narration"]["sha256"], sha256_file(bundle / "audio" / "narration.mp3"))
             for row in evidence["source_assets"]:
                 copied = bundle / row["bundle_path"]
                 self.assertTrue(copied.is_file())

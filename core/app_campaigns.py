@@ -131,6 +131,34 @@ def build_grounded_dataset(
     return result
 
 
+def _build_ad_narration(
+    product: str,
+    description: str,
+    features: list[str],
+    use_cases: list[str],
+    compatibility_notice: str,
+    local_ai_notice: str,
+) -> list[str]:
+    """Create a short spoken summary; complete details remain in the caption/cards."""
+    # Use the opening product-value sentence for speech; the full description remains
+    # in the caption so narration stays comfortably within a short-form video.
+    spoken_description = str(description or "").strip().split("。", 1)[0].strip()
+    if spoken_description and not spoken_description.endswith(("。", "！", "？")):
+        spoken_description += "。"
+    lines = [f"{product}。", spoken_description]
+    if features:
+        lines.append("主な機能の一つは、" + features[0] + "です。")
+    ai_independence = next((value for value in use_cases if "AIなし" in value), "")
+    if ai_independence:
+        lines.append("基本機能はAIなしでも利用できます。")
+    elif use_cases:
+        lines.append(use_cases[0])
+    if local_ai_notice and "Ollama" not in description and not any("Ollama" in value for value in use_cases):
+        lines.append(local_ai_notice)
+    lines.append("詳しくは概要欄をご覧ください。")
+    return [line for line in lines if line and line.strip()]
+
+
 def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
     if dataset.get("grounding_status") != "PASS":
         raise CampaignHold("HOLD_CAMPAIGN_GROUNDING_NOT_PASSED")
@@ -188,7 +216,15 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         video_end_card_lines.append(f"Microsoft Storeで「{product}」を検索")
     video_end_card_text = "\n".join(video_end_card_lines)
 
-    caption_lines = [disclosure_statement, description, *features[:3]]
+    use_cases = [str(value).strip() for value in dataset.get("use_cases") or [] if str(value).strip()]
+    benefits = [str(value).strip() for value in dataset.get("benefits") or [] if str(value).strip()]
+    caption_lines = [disclosure_statement, description]
+    if benefits:
+        caption_lines.extend(["\nこのアプリでできること", *[f"・{value}" for value in benefits]])
+    if features:
+        caption_lines.extend(["\n主な機能", *[f"・{value}" for value in features]])
+    if use_cases:
+        caption_lines.extend(["\nこんな場面に", *[f"・{value}" for value in use_cases]])
     for notice in (
         compatibility_notice,
         local_ai_notice,
@@ -201,22 +237,14 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
     if cta_url:
         caption_lines.append(f"{store_link_notice}\n{cta_url}")
 
-    video_script = [
+    video_script = _build_ad_narration(
         product,
         description,
-        *features[:3],
-        *[
-            value for value in (
-                compatibility_notice,
-                local_ai_notice,
-                ai_independence_notice,
-                store_link_notice,
-            )
-            if value
-        ],
-    ]
-    if cta_url:
-        video_script.append(cta_url)
+        features,
+        use_cases,
+        compatibility_notice,
+        local_ai_notice,
+    )
 
     return {
         "disclosure_statement": disclosure_statement,
@@ -233,12 +261,14 @@ def generate_app_ad_content(dataset: dict[str, Any]) -> dict[str, Any]:
         "summary": description,
         "key_features": features[:3],
         "video_script": video_script,
+        "narration_text": "\\n".join(video_script),
         "compatibility_notice": compatibility_notice,
         "local_ai_notice": local_ai_notice,
         "ai_independence_notice": ai_independence_notice,
         "store_link_notice": store_link_notice,
         "video_end_card_text": video_end_card_text,
         "caption": "\n".join(caption_lines),
+        "caption_has_cta_url": bool(cta_url and cta_url in "\n".join(caption_lines)),
         "limited_availability": bool(dataset.get("limited_availability")),
         "availability_notice": availability_notice,
         "hashtags": ["#PR", "#Windows", "#アプリ"],
