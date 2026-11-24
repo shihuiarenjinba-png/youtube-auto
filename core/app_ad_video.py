@@ -214,7 +214,7 @@ def build_local_review_video(
 
     script_lines = content.get("video_script")
     if isinstance(script_lines, list):
-        narration_text = "。".join(str(item).strip() for item in script_lines if str(item).strip())
+        narration_text = "".join(str(item).strip() for item in script_lines if str(item).strip())
     else:
         narration_text = str(content.get("narration_text") or "").replace("\\n", "。").strip()
     if not narration_text:
