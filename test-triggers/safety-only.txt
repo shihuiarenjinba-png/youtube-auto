@@ -8,3 +8,5 @@ Daymark preview-generation request: create a review artifact only; do not publis
 Retry no-publish Daymark preview after the runner import-path fix.
 
 Retry after resolving nested BGM path provenance and enlarging product UI in preview cards.
+
+Verify clean end card layout; keep Microsoft Store search URL in caption only.
