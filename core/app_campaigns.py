@@ -140,7 +140,12 @@ def _build_ad_narration(
     local_ai_notice: str,
 ) -> list[str]:
     """Create a short spoken summary; complete details remain in the caption/cards."""
-    lines = [f"{product}。", description.strip()]
+    # Use the opening product-value sentence for speech; the full description remains
+    # in the caption so narration stays comfortably within a short-form video.
+    spoken_description = str(description or "").strip().split("。", 1)[0].strip()
+    if spoken_description and not spoken_description.endswith(("。", "！", "？")):
+        spoken_description += "。"
+    lines = [f"{product}。", spoken_description]
     if features:
         lines.append("主な機能の一つは、" + features[0] + "です。")
     ai_independence = next((value for value in use_cases if "AIなし" in value), "")
@@ -150,7 +155,7 @@ def _build_ad_narration(
         lines.append(use_cases[0])
     if local_ai_notice and "Ollama" not in description and not any("Ollama" in value for value in use_cases):
         lines.append(local_ai_notice)
-    lines.append("詳しい機能と入手先は概要欄をご確認ください。")
+    lines.append("詳しくは概要欄をご覧ください。")
     return [line for line in lines if line and line.strip()]
 
 
