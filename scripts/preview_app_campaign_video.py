@@ -63,7 +63,10 @@ def main() -> int:
             "video_sha256": validation["video_sha256"],
             "generation_mode": "screenshot_cards_crossfade_with_edge_tts_narration_and_local_bgm",
             "image_generation_api_used": False,
-            "voice_generation_service_used": True,\n            "voice_provider": validation["voice_provider"],\n            "voice_id": validation["voice_id"],\n            "narration_duration_seconds": validation["narration_duration_seconds"],
+            "voice_generation_service_used": True,
+            "voice_provider": validation["voice_provider"],
+            "voice_id": validation["voice_id"],
+            "narration_duration_seconds": validation["narration_duration_seconds"],
             "posting_performed": False,
             "zernio_called": False,
         }, ensure_ascii=False, indent=2))
