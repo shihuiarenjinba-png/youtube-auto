@@ -1,0 +1,86 @@
+name: TTS smoke test
+
+on:
+  push:
+    branches:
+      - codex/tts-smoke-test
+    paths:
+      - .github/workflows/tts-smoke-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  edge-tts-and-video-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Edge TTS and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install edge-tts
+      - name: Generate Japanese narration with Edge TTS
+        run: |
+          python - <<'PY'
+          import asyncio
+          from pathlib import Path
+          import edge_tts
+
+          text = (
+              "これは広告動画の音声テストです。"
+              "商品に合わせた説明を自然な日本語で読み上げ、"
+              "動画に音声を組み合わせられるか確認しています。"
+          )
+          async def main():
+              await edge_tts.Communicate(
+                  text=text,
+                  voice="ja-JP-NanamiNeural",
+                  rate="-5%",
+                  pitch="+0Hz",
+              ).save("narration.mp3")
+          asyncio.run(main())
+          path = Path("narration.mp3")
+          assert path.exists() and path.stat().st_size > 1000, "TTS output missing or too small"
+          print(f"Generated narration.mp3: {path.stat().st_size} bytes")
+          PY
+      - name: Compose a vertical MP4 with narration audio
+        run: |
+          ffmpeg -y \
+            -f lavfi -i "color=c=0x1f2937:s=1080x1920:r=30:d=30" \
+            -i narration.mp3 \
+            -map 0:v:0 -map 1:a:0 \
+            -c:v libx264 -pix_fmt yuv420p -c:a aac -b:a 192k \
+            -shortest -movflags +faststart tts-audio-smoke-test.mp4
+      - name: Verify MP3 and MP4 audio streams
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          def probe(path):
+              raw = subprocess.check_output([
+                  "ffprobe", "-v", "error", "-show_streams", "-show_format",
+                  "-of", "json", path
+              ], text=True)
+              return json.loads(raw)
+          mp3 = probe("narration.mp3")
+          mp4 = probe("tts-audio-smoke-test.mp4")
+          assert any(s.get("codec_type") == "audio" for s in mp3["streams"]), "MP3 audio stream missing"
+          assert any(s.get("codec_type") == "video" for s in mp4["streams"]), "MP4 video stream missing"
+          assert any(s.get("codec_type") == "audio" for s in mp4["streams"]), "MP4 audio stream missing"
+          print("MP3 duration:", mp3["format"].get("duration"))
+          print("MP4 duration:", mp4["format"].get("duration"))
+          print("MP4 streams:", [(s.get("codec_type"), s.get("codec_name")) for s in mp4["streams"]])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tts-audio-smoke-test
+          path: |
+            narration.mp3
+            tts-audio-smoke-test.mp4
+          retention-days: 7
